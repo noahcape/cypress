@@ -273,7 +273,7 @@ fn rec<'a, A, B, C>(
 #[macro_export]
 macro_rules! choice {
     ($p:expr, $q:expr$(,)?) => {por($p, $q)};
-    ($p:expr, $($rest:expr),*) => {por($p, $crate::choice!($($rest),*))}
+    ($p:expr, $($rest:expr),*$(,)?) => {por($p, $crate::choice!($($rest),*))}
 }
 
 #[test]
@@ -643,16 +643,37 @@ fn t_arithm() {
                 pright(pchar('*'), expression),
                 |a, b| AST::Mult(Box::new(a), Box::new(b)),
             ),
+            pseq(
+                por(&num, &parens),
+                pright(pchar('-'), expression),
+                |a, b| AST::Sub(Box::new(a), Box::new(b)),
+            ),
+            pseq(
+                por(&num, &parens),
+                pright(pchar('/'), expression),
+                |a, b| AST::Div(Box::new(a), Box::new(b)),
+            ),
+            pseq(
+                por(&num, &parens),
+                pright(pchar('^'), expression),
+                |a, b| AST::Pow(Box::new(a), Box::new(b)),
+            ),
         );
 
         por(&op, por(&parens, &num))(i)
     }
 
-    let input = prepare("(1*(2+(2*3)))");
+    let input = prepare("(1+2^3)");
 
     match pleft(expression, peof())(input) {
-        Ok((val, _)) => println!("{:?}", val),
-        Err(e) => println!("{:?}", e),
+        Ok((val, _)) => assert_eq!(
+            val,
+            AST::Add(
+                Box::new(AST::Num(1)),
+                Box::new(AST::Pow(Box::new(AST::Num(2)), Box::new(AST::Num(3))))
+            )
+        ),
+        Err(_) => assert!(false),
     }
 }
 
