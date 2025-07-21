@@ -4,8 +4,7 @@ type Input<'a> = T<'a>;
 type Outcome<'a, O> = Result<(O, T<'a>), String>;
 
 fn prepare(input: &'static str) -> Input<'static> {
-    let input = input.as_bytes();
-    input
+    input.as_bytes()
 }
 
 fn peof<'a>() -> impl Fn(Input<'a>) -> Outcome<'a, bool> {
@@ -18,16 +17,23 @@ fn peof<'a>() -> impl Fn(Input<'a>) -> Outcome<'a, bool> {
     }
 }
 
+fn pnot<'a>(v: u8) -> impl Fn(Input<'a>) -> Outcome<'a, I> {
+    psat(Box::new(move |i: I| !i.eq(&v)), format!("is not {}", v))
+}
+
 fn pdigit<'a>() -> impl Fn(Input<'a>) -> Outcome<'a, I> {
-    psat(Box::new(|i: I| i.is_ascii_digit()), "is digit")
+    psat(Box::new(|i: I| i.is_ascii_digit()), "is digit".into())
 }
 
 fn pspace<'a>() -> impl Fn(Input<'a>) -> Outcome<'a, I> {
-    psat(Box::new(|i: I| i.is_ascii_whitespace()), "is whitespace")
+    psat(
+        Box::new(|i: I| i.is_ascii_whitespace()),
+        "is whitespace".into(),
+    )
 }
 
 fn pletter<'a>() -> impl Fn(Input<'a>) -> Outcome<'a, I> {
-    psat(Box::new(|i: I| i.is_ascii_alphabetic()), "is letter")
+    psat(Box::new(|i: I| i.is_ascii_alphabetic()), "is letter".into())
 }
 
 fn pchar<'a>(c: char) -> impl Fn(Input<'a>) -> Outcome<'a, I> {
@@ -35,11 +41,17 @@ fn pchar<'a>(c: char) -> impl Fn(Input<'a>) -> Outcome<'a, I> {
 }
 
 fn isupper<'a>() -> impl Fn(Input<'a>) -> Outcome<'a, I> {
-    psat(Box::new(|i: I| i.is_ascii_uppercase()), "is uppercase")
+    psat(
+        Box::new(|i: I| i.is_ascii_uppercase()),
+        "is uppercase".into(),
+    )
 }
 
 fn islower<'a>() -> impl Fn(Input<'a>) -> Outcome<'a, I> {
-    psat(Box::new(|i: I| i.is_ascii_lowercase()), "is lowercase")
+    psat(
+        Box::new(|i: I| i.is_ascii_lowercase()),
+        "is lowercase".into(),
+    )
 }
 
 fn pstring<'a>(string: &str) -> impl Fn(Input<'a>) -> Outcome<'a, String> {
@@ -59,7 +71,7 @@ where
     move |input: Input| Ok((a, input))
 }
 
-fn psat<'a>(f: impl Fn(I) -> bool, cond: &str) -> impl Fn(Input<'a>) -> Outcome<'a, I> {
+fn psat<'a>(f: impl Fn(I) -> bool, cond: String) -> impl Fn(Input<'a>) -> Outcome<'a, I> {
     move |input: Input| {
         if input.is_empty() {
             return Err(format!("No input to match"));
@@ -86,7 +98,10 @@ fn pbind<'a, A, B>(
 }
 
 fn pitem<'a>(item: I) -> impl Fn(Input<'a>) -> Outcome<'a, I> {
-    psat(Box::new(move |i: I| i.eq(&item)), "matching input")
+    psat(
+        Box::new(move |i: I| i.eq(&item)),
+        format!("matching {}", item),
+    )
 }
 
 fn pitems<'a>(items: &[I]) -> impl Fn(Input<'a>) -> Outcome<'a, Vec<I>> {
@@ -183,7 +198,7 @@ fn pmany1<'a, A>(
             Err(e) => return Err(e),
         }
 
-        match pmany(parser)(input) {
+        match pmany(&parser)(input) {
             Ok((mut vals, rest)) => {
                 res.append(&mut vals);
                 Ok((res, rest))
@@ -270,10 +285,109 @@ fn rec<'a, A, B, C>(
     }
 }
 
+fn pfold<'a, A, B>(
+    p: impl Fn(Input<'a>) -> Outcome<'a, A>,
+    init: impl Fn() -> B,
+    fold: impl Fn(A, B) -> B,
+) -> impl Fn(Input<'a>) -> Outcome<'a, B> {
+    move |input: Input| {
+        let mut acc = init();
+        let mut rest = input;
+
+        loop {
+            match p(rest) {
+                Ok((val, rest_)) => {
+                    acc = fold(val, acc);
+                    rest = rest_;
+                }
+                Err(_) => return Ok((acc, rest)),
+            }
+        }
+    }
+}
+
 #[macro_export]
 macro_rules! choice {
     ($p:expr, $q:expr$(,)?) => {por($p, $q)};
     ($p:expr, $($rest:expr),*$(,)?) => {por($p, $crate::choice!($($rest),*))}
+}
+
+#[macro_export]
+macro_rules! pseq {
+    ($p:expr$(,)?) => {map($p, Box::new(|a| vec![a]))};
+    ($p:expr, $($rest:expr),*$(,)?) => {
+        pseq(
+            $crate::pseq!($p),
+            $crate::pseq!($($rest),*),
+            |mut xs, mut ys| {xs.append(&mut ys); return xs})
+    }
+}
+
+#[macro_export]
+macro_rules! pnot {
+    ($p:expr) => {pnot(p)};
+    ($($p:expr),*$(,)?) => {
+        psat(
+            Box::new(|v| !vec![$($p),*].contains(&(v as char))), format!("is not one of {:?}", vec![$($p),*])
+        )
+    }
+}
+
+#[macro_export]
+macro_rules! pany {
+    ($($p:expr),*$(,)?) => {
+        psat(
+            Box::new(|v| vec![$($p),*].contains(&(v as char))), format!("is one of {:?}", vec![$($p),*])
+        )
+    };
+}
+
+#[test]
+fn t_pseq_macro() {
+    let input = prepare("ABCD");
+
+    let parser = pseq!(pchar('A'), pchar('B'), pchar('C'), pchar('D'));
+
+    match parser(input) {
+        Ok((val, _)) => assert_eq!(vec![b'A', b'B', b'C', b'D'], val),
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn t_pnot_macro() {
+    let input = prepare("A");
+
+    let parser = pnot!('B', 'D');
+
+    match parser(input) {
+        Ok((val, _)) => assert_eq!(val, b'A'),
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn t_pany_macro() {
+    let input = prepare("Z");
+
+    let parser = pany!('A', 'B', 'C', 'Z');
+
+    match parser(input) {
+        Ok((val, _)) => assert_eq!(val, b'Z'),
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn t_pfold() {
+    let input = prepare("abcde");
+
+    let parser = pfold(pletter(), String::new, |c, s| format!("{s}{}", c as char));
+
+    match parser(input) {
+        Ok((val, _)) => assert_eq!(val, String::from("abcde")),
+        Err(_) => assert!(false),
+    }
 }
 
 #[test]
@@ -286,47 +400,45 @@ fn t_tree() {
         Tree(Box<AST>, Box<AST>),
     }
 
-    fn tree<'a>() -> impl Fn(Input<'a>) -> Outcome<'a, AST> {
-        |input: Input| {
-            let leaf = pseq(
-                Box::new(pletter()),
-                pright(pchar(','), pletter()),
-                |a, b| {
-                    AST::Tree(
-                        Box::new(AST::Leaf(a as char)),
-                        Box::new(AST::Leaf(b as char)),
-                    )
-                },
-            );
-            let ltree = pseq(
-                Box::new(pleft(
-                    map(pletter(), Box::new(|l| AST::Leaf(l as char))),
-                    pchar(','),
-                )),
-                tree(),
-                |a, b| AST::Tree(Box::new(a), Box::new(b)),
-            );
+    fn tree<'a>(input: Input<'a>) -> Outcome<'a, AST> {
+        let leaf = pseq(
+            Box::new(pletter()),
+            pright(pchar(','), pletter()),
+            |a, b| {
+                AST::Tree(
+                    Box::new(AST::Leaf(a as char)),
+                    Box::new(AST::Leaf(b as char)),
+                )
+            },
+        );
+        let ltree = pseq(
+            Box::new(pleft(
+                map(pletter(), Box::new(|l| AST::Leaf(l as char))),
+                pchar(','),
+            )),
+            tree,
+            |a, b| AST::Tree(Box::new(a), Box::new(b)),
+        );
 
-            let rtree = pseq(
-                Box::new(tree()),
-                pright(
-                    pchar(','),
-                    map(pletter(), Box::new(|l| AST::Leaf(l as char))),
-                ),
-                |a, b| AST::Tree(Box::new(a), Box::new(b)),
-            );
-            pbetween(
-                '(' as u8,
-                por(
-                    Box::new(leaf),
-                    por(Box::new(ltree), por(Box::new(rtree), tree())),
-                ),
-                ')' as u8,
-            )(input)
-        }
+        let rtree = pseq(
+            Box::new(tree),
+            pright(
+                pchar(','),
+                map(pletter(), Box::new(|l| AST::Leaf(l as char))),
+            ),
+            |a, b| AST::Tree(Box::new(a), Box::new(b)),
+        );
+        pbetween(
+            '(' as u8,
+            por(
+                Box::new(leaf),
+                por(Box::new(ltree), por(Box::new(rtree), tree)),
+            ),
+            ')' as u8,
+        )(input)
     }
 
-    match tree()(input) {
+    match tree(input) {
         Ok((val, _)) => assert_eq!(
             val,
             AST::Tree(
@@ -476,6 +588,7 @@ fn t_por() {
 #[test]
 fn t_pmany() {
     let input = prepare("AAAAAB");
+    let input2 = prepare("B");
 
     let parse_a = pchar('A');
     let pmany_a = map(pmany(&parse_a), Box::new(|v: Vec<u8>| v.len()));
@@ -489,6 +602,33 @@ fn t_pmany() {
             println!("{e}");
             assert!(false);
         }
+    }
+
+    match pmany_a(input2) {
+        Ok((val, _)) => assert_eq!(val, 0),
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn t_pmany1() {
+    let input = prepare("12345");
+    let input2 = prepare("");
+
+    let binding = pdigit();
+    let num = map(
+        pmany1(&binding),
+        Box::new(|xs| String::from_utf8(xs).unwrap().parse::<u32>().unwrap()),
+    );
+
+    match num(input) {
+        Ok((val, _)) => assert_eq!(val, 12345),
+        Err(_) => assert!(false),
+    }
+
+    match num(input2) {
+        Ok(_) => assert!(false),
+        Err(_) => assert!(true),
     }
 }
 
@@ -625,9 +765,10 @@ fn t_arithm() {
     }
 
     fn expression<'a>(i: Input<'a>) -> Outcome<'a, AST> {
+        let binding = pdigit();
         let num = map(
-            pdigit(),
-            Box::new(|xs| AST::Num(String::from_utf8(vec![xs]).unwrap().parse::<u32>().unwrap())),
+            pmany1(&binding),
+            Box::new(|xs| AST::Num(String::from_utf8(xs).unwrap().parse::<u32>().unwrap())),
         );
 
         let parens = pbetween('(' as u8, expression, ')' as u8);
