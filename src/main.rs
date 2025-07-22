@@ -55,13 +55,15 @@ fn islower<'a>() -> impl Fn(Input<'a>) -> Outcome<'a, I> {
 }
 
 fn pstring<'a>(string: &str) -> impl Fn(Input<'a>) -> Outcome<'a, String> {
-    move |input: Input| {
-        let items = string.as_bytes();
+    let items = string.as_bytes();
 
-        pbind(pitems(items), |xs: Vec<_>| {
-            String::from_utf8(xs.to_vec()).unwrap()
-        })(input)
-    }
+    pbind(pitems(items), |xs: Vec<_>| {
+        String::from_utf8(xs.to_vec()).unwrap()
+    })
+}
+
+fn ppadded<'a, A>(p: impl Fn(Input<'a>) -> Outcome<'a, A>) -> impl Fn(Input<'a>) -> Outcome<'a, A> {
+    pbetween(pmany(pspace()), p, pmany(pspace()))
 }
 
 fn presult<'a, A>(a: A) -> impl Fn(Input<'a>) -> Outcome<'a, A>
@@ -208,14 +210,14 @@ fn pmany1<'a, A>(
     }
 }
 
-fn pbetween<'a, A>(
-    delim_a: I,
+fn pbetween<'a, A, B, C>(
+    delim_a: impl Fn(Input<'a>) -> Outcome<'a, B>,
     parser: impl Fn(Input<'a>) -> Outcome<'a, A>,
-    delim_b: I,
+    delim_b: impl Fn(Input<'a>) -> Outcome<'a, C>,
 ) -> impl Fn(Input<'a>) -> Outcome<'a, A> {
-    move |input: Input| match pitem(delim_a)(input) {
+    move |input: Input| match delim_a(input) {
         Ok((_, rest)) => match parser(rest) {
-            Ok((val, rest)) => match pitem(delim_b)(rest) {
+            Ok((val, rest)) => match delim_b(rest) {
                 Ok((_, rest)) => Ok((val, rest)),
                 Err(e) => Err(e),
             },
@@ -246,7 +248,13 @@ fn pdelim<'a, A>(
                         break;
                     }
                 },
-                Err(err) => return Err(err),
+                Err(err) => {
+                    if res.len() > 0 {
+                        break;
+                    }
+
+                    return Err(err);
+                }
             }
         }
 
@@ -328,7 +336,8 @@ macro_rules! pnot {
     ($p:expr) => {pnot(p)};
     ($($p:expr),*$(,)?) => {
         psat(
-            Box::new(|v| !vec![$($p),*].contains(&(v as char))), format!("is not one of {:?}", vec![$($p),*])
+            Box::new(|v| !vec![$($p),*].contains(&(v as char))),
+            format!("is not one of {:?}", vec![$($p),*])
         )
     }
 }
@@ -337,7 +346,8 @@ macro_rules! pnot {
 macro_rules! pany {
     ($($p:expr),*$(,)?) => {
         psat(
-            Box::new(|v| vec![$($p),*].contains(&(v as char))), format!("is one of {:?}", vec![$($p),*])
+            Box::new(|v| vec![$($p),*].contains(&(v as char))),
+            format!("is one of {:?}", vec![$($p),*])
         )
     };
 }
@@ -374,6 +384,22 @@ fn t_pany_macro() {
 
     match parser(input) {
         Ok((val, _)) => assert_eq!(val, b'Z'),
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn t_ppadded() {
+    let input = prepare("[a, b, c, ]");
+
+    let parser = pbetween(
+        pchar('['),
+        ppadded(pdelim(pchar(','), ppadded(pletter()))),
+        pchar(']'),
+    );
+
+    match parser(input) {
+        Ok((val, _)) => assert_eq!(val, vec![b'a', b'b', b'c']),
         Err(_) => assert!(false),
     }
 }
@@ -428,13 +454,14 @@ fn t_tree() {
             ),
             |a, b| AST::Tree(Box::new(a), Box::new(b)),
         );
+
         pbetween(
-            '(' as u8,
+            pchar('('),
             por(
                 Box::new(leaf),
                 por(Box::new(ltree), por(Box::new(rtree), tree)),
             ),
-            ')' as u8,
+            pchar(')'),
         )(input)
     }
 
@@ -467,12 +494,12 @@ fn t_cons() {
     }
 
     let bc = pbetween(
-        '(' as u8,
+        pchar('('),
         map(
             pleft(pletter(), pright(pchar(','), pstring("nil"))),
             Box::new(|d| List::Cons(d as char, Box::new(List::Nil))),
         ),
-        ')' as u8,
+        pchar(')'),
     );
 
     let before = map(
@@ -657,7 +684,7 @@ fn t_pbetween() {
     let input = prepare("{abc}");
 
     let parse_abc = pbind(pitems("abc".as_bytes()), |v| String::from_utf8(v).unwrap());
-    let parse_between = pbetween('{' as u8, parse_abc, '}' as u8);
+    let parse_between = pbetween(pchar('{'), parse_abc, pchar('}'));
 
     match parse_between(input) {
         Ok((val, rest)) => {
@@ -711,7 +738,7 @@ fn t_list() {
     );
     let p_inner = pdelim(p_delim, p_letter);
 
-    let parse = pbetween('[' as u8, p_inner, ']' as u8);
+    let parse = pbetween(pchar('['), p_inner, pchar(']'));
 
     match parse(input) {
         Ok((val, _)) => {
@@ -771,7 +798,7 @@ fn t_arithm() {
             Box::new(|xs| AST::Num(String::from_utf8(xs).unwrap().parse::<u32>().unwrap())),
         );
 
-        let parens = pbetween('(' as u8, expression, ')' as u8);
+        let parens = pbetween(pchar('('), expression, pchar(')'));
 
         let op = choice!(
             pseq(
