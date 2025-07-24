@@ -1,0 +1,1 @@
+A parser library inspired by a scaled down derivative of the FParsec combinator library in F#.

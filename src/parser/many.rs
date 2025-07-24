@@ -18,14 +18,9 @@ where
         let mut vals: Vec<O> = vec![];
         let mut input = i;
 
-        loop {
-            match self.p.parse(input.clone()) {
-                Ok(PSuccess { val, rest }) => {
-                    vals.push(val);
-                    input = rest;
-                }
-                Err(_) => break,
-            }
+        while let Ok(PSuccess { val, rest }) = self.p.parse(input.clone()) {
+            vals.push(val);
+            input = rest;
         }
 
         Ok(PSuccess {

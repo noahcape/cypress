@@ -1,4 +1,3 @@
-
 use crate::parser::*;
 
 pub struct PNot<P, O> {
@@ -23,7 +22,7 @@ where
         let start = i.loc;
         match self.p.parse(i) {
             Ok(PSuccess { val: _, rest }) => Err(PFail {
-                error: format!("Was what was not expected."),
+                error: "Was what was not expected.".to_string(),
                 span: (start, rest.loc),
                 rest,
             }),

@@ -28,13 +28,13 @@ where
         match i.tokens.next() {
             Some(tok) => {
                 if (self.test)(tok) {
-                    return Ok(PSuccess {
+                    Ok(PSuccess {
                         val: tok,
                         rest: PInput {
                             tokens: i.tokens.clone(),
                             loc: i.loc + 1,
                         },
-                    });
+                    })
                 } else {
                     Err(PFail {
                         error: self.condition.clone(),
@@ -47,7 +47,7 @@ where
                 }
             }
             None => Err(PFail {
-                error: format!("No token to read"),
+                error: "No token to read".to_string(),
                 span: (i.loc, i.loc),
                 rest: PInput {
                     tokens: i.tokens.clone(),

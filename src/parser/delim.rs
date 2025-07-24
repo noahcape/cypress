@@ -1,4 +1,3 @@
-
 use crate::parser::*;
 
 pub struct PDelim<P1, P2, A> {
@@ -45,7 +44,7 @@ where
                     }
                 }
                 Err(PFail { error, span, rest }) => {
-                    if vals.len() > 0 {
+                    if !vals.is_empty() {
                         return Ok(PSuccess { val: vals, rest });
                     } else {
                         return Err(PFail { error, span, rest });

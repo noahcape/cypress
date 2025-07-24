@@ -11,8 +11,8 @@ pub fn por<P1, P2>(p1: P1, p2: P2) -> POr<P1, P2> {
 
 #[macro_export]
 macro_rules! choice {
-    ($p:expr, $q:expr $(,)?) => {por($p, $q)};
-    ($p:expr, $( $rest:expr ),* $(,)?) => {por($p, $crate::choice!($($rest),*))};
+    ($p:expr, $q:expr $(,)?) => {$crate::parser::or::por($p, $q)};
+    ($p:expr, $( $rest:expr ),* $(,)?) => {$crate::parser::or::por($p, $crate::choice!($($rest),*))};
 }
 
 impl<'a, K, I, O, P1, P2> ParserCore<'a, K, I, O> for POr<P1, P2>
