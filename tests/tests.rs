@@ -4,10 +4,10 @@ use parsec::{
 };
 
 #[test]
-fn t_pitem() {
+fn t_just() {
     let input = prepare("ABC".chars());
 
-    let parser = pitem('A');
+    let parser = just('A');
 
     match parser.parse(input) {
         Ok(PSuccess { val, rest: _ }) => assert_eq!(val, 'A'),
@@ -19,7 +19,7 @@ fn t_pitem() {
 fn t_then() {
     let input = prepare("ABC".chars());
 
-    let parser = pitem('A').then(pitem('B'));
+    let parser = just('A').then(just('B'));
 
     match parser.parse(input) {
         Ok(PSuccess { val, rest: _ }) => assert_eq!(val, ('A', 'B')),
@@ -31,7 +31,7 @@ fn t_then() {
 fn t_or() {
     let input = prepare("B".chars());
 
-    let parser = pitem('A').or(pitem('B'));
+    let parser = just('A').or(just('B'));
 
     match parser.parse(input) {
         Ok(PSuccess { val, rest: _ }) => assert_eq!(val, 'B'),
@@ -43,7 +43,7 @@ fn t_or() {
 fn t_map() {
     let input = prepare("A".chars());
 
-    let parser = pitem('A').map(|_| 1);
+    let parser = just('A').map(|_| 1);
 
     match parser.parse(input) {
         Ok(PSuccess { val, rest: _ }) => assert_eq!(val, 1),
@@ -55,7 +55,7 @@ fn t_map() {
 fn t_choice() {
     let input = prepare("A".chars());
 
-    let parser = choice!(pitem('C'), pitem('A'), pitem('C'));
+    let parser = choice!(just('C'), just('A'), just('C'));
 
     match parser.parse(input) {
         Ok(PSuccess { val, rest: _ }) => assert_eq!(val, 'A'),
@@ -67,7 +67,7 @@ fn t_choice() {
 fn t_pbetween() {
     let input = prepare("[A]".chars());
 
-    let parser = pbetween(pitem('['), pitem('A'), pitem(']'));
+    let parser = pbetween(just('['), just('A'), just(']'));
 
     match parser.parse(input) {
         Ok(PSuccess { val, rest: _ }) => assert_eq!(val, 'A'),
@@ -91,7 +91,7 @@ fn t_pmany() {
 fn t_padded() {
     let input = prepare("   A   ".chars());
 
-    let parser = ppadded(pitem('A'), pws::<char>());
+    let parser = ppadded(just('A'), pws::<char>());
 
     match parser.parse(input) {
         Ok(PSuccess { val, rest }) => {
@@ -115,10 +115,10 @@ fn t_recursive() {
     let parser = recursive(|expr| {
         Box::new(choice!(
             pnum().map(|a: char| AST::Num(a.to_digit(10).unwrap())),
-            pitem('(')
+            just('(')
                 .then(expr.clone())
-                .then(pitem('+').then(expr))
-                .then(pitem(')'))
+                .then(just('+').then(expr))
+                .then(just(')'))
                 .map(|(((_, lhs), (_, rhs)), _)| AST::Expr(Box::new(lhs), Box::new(rhs)))
         ))
     });

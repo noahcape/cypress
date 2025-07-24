@@ -7,6 +7,15 @@ pub struct PBetween<L, P, R, A> {
     _marker: PhantomData<A>,
 }
 
+pub fn pbetween<L, P, R, A>(l: L, p: P, r: R) -> PBetween<L, P, R, A> {
+    PBetween {
+        l,
+        p,
+        r,
+        _marker: PhantomData,
+    }
+}
+
 impl<'a, K, I, O, L, P, R, A> ParserCore<'a, K, I, O> for PBetween<L, P, R, A>
 where
     K: PartialEq + Copy + Clone,
@@ -90,13 +99,11 @@ where
     {
         ppadded(self, pad)
     }
-}
 
-pub fn pbetween<L, P, R, A>(l: L, p: P, r: R) -> PBetween<L, P, R, A> {
-    PBetween {
-        l,
-        p,
-        r,
-        _marker: PhantomData,
+    fn into_<Out>(self, out: Out) -> impl Parser<'a, K, I, Out>
+    where
+        Out: PartialEq + Clone + 'a,
+    {
+        pinto(self, out)
     }
 }

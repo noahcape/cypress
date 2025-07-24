@@ -61,4 +61,8 @@ pub trait Parser<'a, K: PartialEq + Copy, I: Iterator<Item = K>, O>:
     fn padded_by<P, A>(self, pad: P) -> impl Parser<'a, K, I, O>
     where
         P: Parser<'a, K, I, A> + Clone;
+
+    fn into_<Out>(self, out: Out) -> impl Parser<'a, K, I, Out>
+    where
+        Out: PartialEq + Clone + 'a;
 }

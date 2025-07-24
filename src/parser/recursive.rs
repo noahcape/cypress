@@ -103,4 +103,11 @@ where
     {
         ppadded(self, pad)
     }
+
+    fn into_<Out>(self, out: Out) -> impl Parser<'a, K, I, Out>
+    where
+        Out: PartialEq + Clone + 'a,
+    {
+        pinto(self, out)
+    }
 }

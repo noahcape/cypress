@@ -33,7 +33,10 @@ use or::*;
 pub mod between;
 use between::*;
 
-pub fn pitem<K>(c: K) -> PSat<K>
+pub mod into;
+use into::*;
+
+fn pitem<K>(c: K) -> PSat<K>
 where
     K: PartialEq + Display + Copy + 'static,
 {
@@ -41,6 +44,13 @@ where
         Box::new(move |i: K| i.eq(&c)),
         format!("Token doesn't match {c}"),
     )
+}
+
+pub fn just<K>(t: K) -> PSat<K>
+where
+    K: PartialEq + Display + Copy + 'static,
+{
+    pitem(t)
 }
 
 pub fn pnum<K>() -> PSat<K>
