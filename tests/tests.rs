@@ -1,6 +1,6 @@
 use parsec::{
     choice,
-    parser::{between::pbetween, padded::ppadded, parser::*, recursive::recursive, *},
+    parser::{between::pbetween, core::*, padded::ppadded, recursive::recursive, *},
 };
 
 #[test]

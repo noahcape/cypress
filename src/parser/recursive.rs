@@ -1,7 +1,9 @@
 use crate::parser::*;
 
+type ParserRef<'a, K, I, O> = Rc<RefCell<Option<Box<dyn ParserCore<'a, K, I, O> + 'a>>>>;
+
 pub struct PRecursive<'a, K, I, O> {
-    parser: Rc<RefCell<Option<Box<dyn ParserCore<'a, K, I, O> + 'a>>>>,
+    parser: ParserRef<'a, K, I, O>,
 }
 
 impl<'a, K, I, O> Clone for PRecursive<'a, K, I, O> {

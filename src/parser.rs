@@ -1,7 +1,7 @@
 use std::{cell::RefCell, fmt::Display, marker::PhantomData, rc::Rc, sync::Arc};
 
-pub mod parser;
-use parser::*;
+pub mod core;
+use core::*;
 
 pub mod recursive;
 
@@ -36,21 +36,14 @@ use between::*;
 pub mod into;
 use into::*;
 
-fn pitem<K>(c: K) -> PSat<K>
-where
-    K: PartialEq + Display + Copy + 'static,
-{
-    psat(
-        Box::new(move |i: K| i.eq(&c)),
-        format!("Token doesn't match {c}"),
-    )
-}
-
 pub fn just<K>(t: K) -> PSat<K>
 where
     K: PartialEq + Display + Copy + 'static,
 {
-    pitem(t)
+    psat(
+        Box::new(move |i: K| i.eq(&t)),
+        format!("Token doesn't match {t}"),
+    )
 }
 
 pub fn pnum<K>() -> PSat<K>

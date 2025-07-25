@@ -1,7 +1,7 @@
 use parsec::{
     choice,
     parser::{
-        parser::{PSuccess, Parser, ParserCore, prepare},
+        core::{PSuccess, Parser, ParserCore, prepare},
         recursive::recursive,
         *,
     },
