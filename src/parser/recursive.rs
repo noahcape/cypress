@@ -1,12 +1,12 @@
 use crate::parser::*;
 
-type ParserRef<'a, K, I, O> = Rc<RefCell<Option<Box<dyn ParserCore<'a, K, I, O> + 'a>>>>;
+type ParserRef<'a, K, O> = Rc<RefCell<Option<Box<dyn ParserCore<'a, K, O> + 'a>>>>;
 
-pub struct PRecursive<'a, K, I, O> {
-    parser: ParserRef<'a, K, I, O>,
+pub struct PRecursive<'a, K, O> {
+    parser: ParserRef<'a, K, O>,
 }
 
-impl<'a, K, I, O> Clone for PRecursive<'a, K, I, O> {
+impl<'a, K, O> Clone for PRecursive<'a, K, O> {
     fn clone(&self) -> Self {
         Self {
             parser: Rc::clone(&self.parser),
@@ -14,12 +14,11 @@ impl<'a, K, I, O> Clone for PRecursive<'a, K, I, O> {
     }
 }
 
-pub fn recursive<'a, K, I, O, F>(f: F) -> PRecursive<'a, K, I, O>
+pub fn recursive<'a, K, O, F>(f: F) -> PRecursive<'a, K, O>
 where
     K: PartialEq + Copy + 'a,
-    I: Iterator<Item = K> + Clone + 'a,
     O: 'a,
-    F: FnOnce(PRecursive<'a, K, I, O>) -> Box<dyn ParserCore<'a, K, I, O> + 'a>,
+    F: FnOnce(PRecursive<'a, K, O>) -> Box<dyn ParserCore<'a, K, O> + 'a>,
 {
     let cell = Rc::new(RefCell::new(None));
     let rec = PRecursive {
@@ -32,13 +31,12 @@ where
     PRecursive { parser: cell }
 }
 
-impl<'a, K, I, O> ParserCore<'a, K, I, O> for PRecursive<'a, K, I, O>
+impl<'a, K, O> ParserCore<'a, K, O> for PRecursive<'a, K, O>
 where
     K: PartialEq + Copy + 'a,
-    I: Iterator<Item = K> + Clone + 'a,
     O: 'a,
 {
-    fn parse(&self, i: PInput<K, I>) -> Result<PSuccess<K, I, O>, PFail<K, I>> {
+    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O>, PFail<'a, K>> {
         self.parser
             .borrow()
             .as_ref()
@@ -47,28 +45,27 @@ where
     }
 }
 
-impl<'a, K, I, O> Parser<'a, K, I, O> for PRecursive<'a, K, I, O>
+impl<'a, K, O> Parser<'a, K, O> for PRecursive<'a, K, O>
 where
     K: PartialEq + Copy + 'a,
-    I: Iterator<Item = K> + Clone + 'a,
     O: 'a,
 {
-    fn then<O2, T>(self, p2: T) -> impl Parser<'a, K, I, (O, O2)>
+    fn then<O2, T>(self, p2: T) -> impl Parser<'a, K, (O, O2)>
     where
-        T: Parser<'a, K, I, O2>,
+        T: Parser<'a, K, O2>,
         O2: 'a,
     {
         pseq(self, p2)
     }
 
-    fn or<T>(self, p2: T) -> impl Parser<'a, K, I, O>
+    fn or<T>(self, p2: T) -> impl Parser<'a, K, O>
     where
-        T: Parser<'a, K, I, O>,
+        T: Parser<'a, K, O>,
     {
         por(self, p2)
     }
 
-    fn map<O2, F>(self, f: F) -> impl Parser<'a, K, I, O2>
+    fn map<O2, F>(self, f: F) -> impl Parser<'a, K, O2>
     where
         F: Fn(O) -> O2 + 'static,
         O2: 'a,
@@ -76,37 +73,37 @@ where
         pbind(self, f)
     }
 
-    fn between<A, P1, P2>(self, l: P1, r: P2) -> impl Parser<'a, K, I, O>
+    fn between<A, P1, P2>(self, l: P1, r: P2) -> impl Parser<'a, K, O>
     where
-        P1: Parser<'a, K, I, A>,
-        P2: Parser<'a, K, I, A>,
+        P1: Parser<'a, K, A>,
+        P2: Parser<'a, K, A>,
     {
         pbetween(l, self, r)
     }
 
-    fn many(self) -> impl Parser<'a, K, I, Vec<O>> {
+    fn many(self) -> impl Parser<'a, K, Vec<O>> {
         pmany(self)
     }
 
-    fn not(self) -> impl Parser<'a, K, I, ()> {
+    fn not(self) -> impl Parser<'a, K, ()> {
         pnot(self)
     }
 
-    fn delimited_by<PD, A>(self, delim: PD) -> impl Parser<'a, K, I, Vec<O>>
+    fn delimited_by<PD, A>(self, delim: PD) -> impl Parser<'a, K, Vec<O>>
     where
-        PD: Parser<'a, K, I, A>,
+        PD: Parser<'a, K, A>,
     {
         pdelim(self, delim)
     }
 
-    fn padded_by<P, A>(self, pad: P) -> impl Parser<'a, K, I, O>
+    fn padded_by<P, A>(self, pad: P) -> impl Parser<'a, K, O>
     where
-        P: Parser<'a, K, I, A> + Clone,
+        P: Parser<'a, K, A> + Clone,
     {
         ppadded(self, pad)
     }
 
-    fn into_<Out>(self, out: Out) -> impl Parser<'a, K, I, Out>
+    fn into_<Out>(self, out: Out) -> impl Parser<'a, K, Out>
     where
         Out: PartialEq + Clone + 'a,
     {

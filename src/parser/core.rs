@@ -1,68 +1,74 @@
-#[derive(Clone, Copy, Debug)]
-pub struct PInput<T: PartialEq + Copy, I: Iterator<Item = T>> {
-    pub tokens: I,
-    pub loc: u32,
+#[derive(Clone, Debug)]
+pub struct PInput<'a, T: PartialEq + Copy + Clone + 'a> {
+    pub tokens: &'a [T],
+    pub loc: usize,
 }
 
-pub fn prepare<T: PartialEq + Copy, I: Iterator<Item = T>>(i: I) -> PInput<T, I> {
+pub fn prepare<'a, T>(i: &'a [T]) -> PInput<'a, T>
+where
+    T: PartialEq + Copy + Clone,
+{
     PInput { tokens: i, loc: 0 }
 }
 
-#[derive(Clone, Copy)]
-pub struct PSuccess<T: PartialEq + Copy, I: Iterator<Item = T>, O> {
-    pub val: O,
-    pub rest: PInput<T, I>,
-}
-
-pub struct PFail<K: PartialEq + Copy, I: Iterator<Item = K>> {
-    pub error: String,
-    pub span: (u32, u32),
-    pub rest: PInput<K, I>,
-}
-
-pub trait ParserCore<'a, K, I, O>
+#[derive(Clone)]
+pub struct PSuccess<'a, T, O>
 where
-    K: PartialEq + Copy,
-    I: Iterator<Item = K>,
+    T: PartialEq + Copy + Clone,
 {
-    fn parse(&self, i: PInput<K, I>) -> Result<PSuccess<K, I, O>, PFail<K, I>>;
+    pub val: O,
+    pub rest: PInput<'a, T>,
 }
 
-pub trait Parser<'a, K: PartialEq + Copy, I: Iterator<Item = K>, O>:
-    ParserCore<'a, K, I, O> + Sized
+pub struct PFail<'a, T>
+where
+    T: PartialEq + Copy + Clone,
 {
-    fn then<O2, T>(self, p2: T) -> impl Parser<'a, K, I, (O, O2)>
+    pub error: String,
+    pub span: (usize, usize),
+    pub rest: PInput<'a, T>,
+}
+
+pub trait ParserCore<'a, K, O>
+where
+    K: PartialEq + Copy + Clone + 'a,
+{
+    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O>, PFail<'a, K>>;
+}
+
+pub trait Parser<'a, K: PartialEq + Copy + Clone + 'a, O>: ParserCore<'a, K, O> + Sized {
+    fn then<O2, T>(self, p2: T) -> impl Parser<'a, K, (O, O2)>
     where
-        T: Parser<'a, K, I, O2>,
+        T: Parser<'a, K, O2>,
         O2: 'a;
 
-    fn or<T>(self, p2: T) -> impl Parser<'a, K, I, O>
+    fn or<T>(self, p2: T) -> impl Parser<'a, K, O>
     where
-        T: Parser<'a, K, I, O>;
+        T: Parser<'a, K, O>;
 
-    fn map<O2, F>(self, f: F) -> impl Parser<'a, K, I, O2>
+    fn map<O2, F>(self, f: F) -> impl Parser<'a, K, O2>
     where
         F: Fn(O) -> O2 + 'static,
         O2: 'a;
 
-    fn between<A, P1, P2>(self, l: P1, r: P2) -> impl Parser<'a, K, I, O>
+    fn between<A, P1, P2>(self, l: P1, r: P2) -> impl Parser<'a, K, O>
     where
-        P1: Parser<'a, K, I, A>,
-        P2: Parser<'a, K, I, A>;
+        P1: Parser<'a, K, A>,
+        P2: Parser<'a, K, A>;
 
-    fn many(self) -> impl Parser<'a, K, I, Vec<O>>;
+    fn many(self) -> impl Parser<'a, K, Vec<O>>;
 
-    fn delimited_by<PD, A>(self, delim: PD) -> impl Parser<'a, K, I, Vec<O>>
+    fn delimited_by<PD, A>(self, delim: PD) -> impl Parser<'a, K, Vec<O>>
     where
-        PD: Parser<'a, K, I, A>;
+        PD: Parser<'a, K, A>;
 
-    fn not(self) -> impl Parser<'a, K, I, ()>;
+    fn not(self) -> impl Parser<'a, K, ()>;
 
-    fn padded_by<P, A>(self, pad: P) -> impl Parser<'a, K, I, O>
+    fn padded_by<P, A>(self, pad: P) -> impl Parser<'a, K, O>
     where
-        P: Parser<'a, K, I, A> + Clone;
+        P: Parser<'a, K, A> + Clone;
 
-    fn into_<Out>(self, out: Out) -> impl Parser<'a, K, I, Out>
+    fn into_<Out>(self, out: Out) -> impl Parser<'a, K, Out>
     where
         Out: PartialEq + Clone + 'a;
 }

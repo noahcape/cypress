@@ -36,13 +36,18 @@ use between::*;
 pub mod into;
 use into::*;
 
-pub fn just<K>(t: K) -> PSat<K>
+pub mod utils;
+use utils::*;
+
+pub fn just<K, T>(t: T) -> PSat<K>
 where
     K: PartialEq + Display + Copy + 'static,
+    T: IntoToken<K> + Copy,
 {
+    let token: K = t.into_token();
     psat(
-        Box::new(move |i: K| i.eq(&t)),
-        format!("Token doesn't match {t}"),
+        Box::new(move |i: K| i.eq(&token)),
+        format!("Token doesn't match {token}"),
     )
 }
 
@@ -52,7 +57,7 @@ where
 {
     psat(
         Box::new(move |i: K| Into::<char>::into(i).is_ascii_digit()),
-        "Token is not a number".to_string(),
+        "Token is not a number",
     )
 }
 
@@ -62,7 +67,7 @@ where
 {
     psat(
         Box::new(|i: K| Into::<char>::into(i).is_ascii_alphabetic()),
-        "Token is not a letter.".to_string(),
+        "Token is not a letter.",
     )
 }
 
@@ -72,6 +77,6 @@ where
 {
     psat(
         Box::new(|i: K| Into::<char>::into(i).is_ascii_whitespace()),
-        "Token is not whitespace.".to_string(),
+        "Token is not whitespace.",
     )
 }

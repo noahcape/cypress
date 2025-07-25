@@ -45,7 +45,7 @@ fn main() {
         )
     });
 
-    let input = prepare("+++++[>>+<<-]".chars());
+    let input = prepare("+++++[>>+<<-]".as_bytes());
 
     let expected_bf = vec![
         Instruction::Increment,

@@ -5,43 +5,43 @@ use parsec::{
 
 #[test]
 fn t_just() {
-    let input = prepare("ABC".chars());
+    let input = prepare(b"ABC");
 
     let parser = just('A');
 
     match parser.parse(input) {
-        Ok(PSuccess { val, rest: _ }) => assert_eq!(val, 'A'),
+        Ok(PSuccess { val, rest: _ }) => assert_eq!(val, b'A'),
         Err(_) => assert!(false),
     }
 }
 
 #[test]
 fn t_then() {
-    let input = prepare("ABC".chars());
+    let input = prepare(b"ABC");
 
     let parser = just('A').then(just('B'));
 
     match parser.parse(input) {
-        Ok(PSuccess { val, rest: _ }) => assert_eq!(val, ('A', 'B')),
+        Ok(PSuccess { val, rest: _ }) => assert_eq!(val, (b'A', b'B')),
         Err(_) => assert!(false),
     }
 }
 
 #[test]
 fn t_or() {
-    let input = prepare("B".chars());
+    let input = prepare(b"B");
 
     let parser = just('A').or(just('B'));
 
     match parser.parse(input) {
-        Ok(PSuccess { val, rest: _ }) => assert_eq!(val, 'B'),
+        Ok(PSuccess { val, rest: _ }) => assert_eq!(val, b'B'),
         Err(_) => assert!(false),
     }
 }
 
 #[test]
 fn t_map() {
-    let input = prepare("A".chars());
+    let input = prepare(b"A");
 
     let parser = just('A').map(|_| 1);
 
@@ -53,50 +53,50 @@ fn t_map() {
 
 #[test]
 fn t_choice() {
-    let input = prepare("A".chars());
+    let input = prepare(b"A");
 
     let parser = choice!(just('C'), just('A'), just('C'));
 
     match parser.parse(input) {
-        Ok(PSuccess { val, rest: _ }) => assert_eq!(val, 'A'),
+        Ok(PSuccess { val, rest: _ }) => assert_eq!(val, b'A'),
         Err(_) => assert!(false),
     }
 }
 
 #[test]
 fn t_pbetween() {
-    let input = prepare("[A]".chars());
+    let input = prepare("[A]".as_bytes());
 
     let parser = pbetween(just('['), just('A'), just(']'));
 
     match parser.parse(input) {
-        Ok(PSuccess { val, rest: _ }) => assert_eq!(val, 'A'),
+        Ok(PSuccess { val, rest: _ }) => assert_eq!(val, b'A'),
         Err(_) => assert!(false),
     }
 }
 
 #[test]
 fn t_pmany() {
-    let input = prepare("ABCDE".chars());
+    let input = prepare("ABCDE".as_bytes());
 
     let parser = pletter().many();
 
     match parser.parse(input) {
-        Ok(PSuccess { val, rest: _ }) => assert_eq!(val, ['A', 'B', 'C', 'D', 'E']),
+        Ok(PSuccess { val, rest: _ }) => assert_eq!(val, [b'A', b'B', b'C', b'D', b'E']),
         Err(_) => assert!(false),
     }
 }
 
 #[test]
 fn t_padded() {
-    let input = prepare("   A   ".chars());
+    let input = prepare("   A   ".as_bytes());
 
-    let parser = ppadded(just('A'), pws::<char>());
+    let parser = ppadded(just('A'), pws::<u8>());
 
     match parser.parse(input) {
         Ok(PSuccess { val, rest }) => {
-            assert_eq!(val, 'A');
-            assert_eq!(rest.tokens.count(), 0)
+            assert_eq!(val, b'A');
+            assert_eq!(rest.loc, rest.tokens.len())
         }
         Err(_) => assert!(false),
     }
@@ -104,7 +104,7 @@ fn t_padded() {
 
 #[test]
 fn t_recursive() {
-    let input = prepare("(1+(2+3))".chars());
+    let input = prepare("(1+(2+3))".as_bytes());
 
     #[derive(Debug, PartialEq)]
     enum AST {
@@ -114,7 +114,7 @@ fn t_recursive() {
 
     let parser = recursive(|expr| {
         Box::new(choice!(
-            pnum().map(|a: char| AST::Num(a.to_digit(10).unwrap())),
+            pnum().map(|a: u8| AST::Num((a - b'0').into())),
             just('(')
                 .then(expr.clone())
                 .then(just('+').then(expr))

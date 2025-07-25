@@ -12,13 +12,12 @@ pub fn pnot<P, O>(p: P) -> PNot<P, O> {
     }
 }
 
-impl<'a, K, I, O, P> ParserCore<'a, K, I, ()> for PNot<P, O>
+impl<'a, K, O, P> ParserCore<'a, K, ()> for PNot<P, O>
 where
-    K: PartialEq + Copy + Clone,
-    I: Iterator<Item = K> + Clone,
-    P: Parser<'a, K, I, O>,
+    K: PartialEq + Copy + Clone + 'a,
+    P: Parser<'a, K, O>,
 {
-    fn parse(&self, i: PInput<K, I>) -> Result<PSuccess<K, I, ()>, PFail<K, I>> {
+    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, ()>, PFail<'a, K>> {
         let start = i.loc;
         match self.p.parse(i) {
             Ok(PSuccess { val: _, rest }) => Err(PFail {
@@ -35,28 +34,27 @@ where
     }
 }
 
-impl<'a, K, I, O, P> Parser<'a, K, I, ()> for PNot<P, O>
+impl<'a, K, O, P> Parser<'a, K, ()> for PNot<P, O>
 where
     K: PartialEq + Copy + Clone + 'a,
-    I: Iterator<Item = K> + Clone + 'a,
-    P: Parser<'a, K, I, O>,
+    P: Parser<'a, K, O>,
 {
-    fn then<O2, T>(self, p2: T) -> impl Parser<'a, K, I, ((), O2)>
+    fn then<O2, T>(self, p2: T) -> impl Parser<'a, K, ((), O2)>
     where
-        T: Parser<'a, K, I, O2>,
+        T: Parser<'a, K, O2>,
         O2: 'a,
     {
         pseq(self, p2)
     }
 
-    fn or<T>(self, p2: T) -> impl Parser<'a, K, I, ()>
+    fn or<T>(self, p2: T) -> impl Parser<'a, K, ()>
     where
-        T: Parser<'a, K, I, ()>,
+        T: Parser<'a, K, ()>,
     {
         por(self, p2)
     }
 
-    fn map<O2, F>(self, f: F) -> impl Parser<'a, K, I, O2>
+    fn map<O2, F>(self, f: F) -> impl Parser<'a, K, O2>
     where
         F: Fn(()) -> O2 + 'static,
         O2: 'a,
@@ -64,37 +62,37 @@ where
         pbind(self, f)
     }
 
-    fn between<A, P1, P2>(self, l: P1, r: P2) -> impl Parser<'a, K, I, ()>
+    fn between<A, P1, P2>(self, l: P1, r: P2) -> impl Parser<'a, K, ()>
     where
-        P1: Parser<'a, K, I, A>,
-        P2: Parser<'a, K, I, A>,
+        P1: Parser<'a, K, A>,
+        P2: Parser<'a, K, A>,
     {
         pbetween(l, self, r)
     }
 
-    fn many(self) -> impl Parser<'a, K, I, Vec<()>> {
+    fn many(self) -> impl Parser<'a, K, Vec<()>> {
         pmany(self)
     }
 
-    fn not(self) -> impl Parser<'a, K, I, ()> {
+    fn not(self) -> impl Parser<'a, K, ()> {
         pnot(self)
     }
 
-    fn delimited_by<PD, A>(self, delim: PD) -> impl Parser<'a, K, I, Vec<()>>
+    fn delimited_by<PD, A>(self, delim: PD) -> impl Parser<'a, K, Vec<()>>
     where
-        PD: Parser<'a, K, I, A>,
+        PD: Parser<'a, K, A>,
     {
         pdelim(self, delim)
     }
 
-    fn padded_by<Pad, A>(self, pad: Pad) -> impl Parser<'a, K, I, ()>
+    fn padded_by<Pad, A>(self, pad: Pad) -> impl Parser<'a, K, ()>
     where
-        Pad: Parser<'a, K, I, A> + Clone,
+        Pad: Parser<'a, K, A> + Clone,
     {
         ppadded(self, pad)
     }
 
-    fn into_<Out>(self, out: Out) -> impl Parser<'a, K, I, Out>
+    fn into_<Out>(self, out: Out) -> impl Parser<'a, K, Out>
     where
         Out: PartialEq + Clone + 'a,
     {

@@ -6,7 +6,7 @@ pub struct PSat<K: PartialEq> {
     condition: String,
 }
 
-pub fn psat<K, F>(test: F, condition: String) -> PSat<K>
+pub fn psat<K, F>(test: F, condition: impl Into<String>) -> PSat<K>
 where
     K: PartialEq + Display,
     F: Fn(K) -> bool + 'static,
@@ -15,23 +15,22 @@ where
 
     PSat {
         test: Arc::new(func),
-        condition,
+        condition: condition.into(),
     }
 }
 
-impl<'a, K, I> ParserCore<'a, K, I, K> for PSat<K>
+impl<'a, K> ParserCore<'a, K, K> for PSat<K>
 where
-    K: PartialEq + Copy,
-    I: Iterator<Item = K> + Clone,
+    K: PartialEq + Copy + Clone + 'a,
 {
-    fn parse(&self, mut i: PInput<K, I>) -> Result<PSuccess<K, I, K>, PFail<K, I>> {
-        match i.tokens.next() {
+    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, K>, PFail<'a, K>> {
+        match i.tokens.get(i.loc) {
             Some(tok) => {
-                if (self.test)(tok) {
+                if (self.test)(*tok) {
                     Ok(PSuccess {
-                        val: tok,
+                        val: *tok,
                         rest: PInput {
-                            tokens: i.tokens.clone(),
+                            tokens: i.tokens,
                             loc: i.loc + 1,
                         },
                     })
@@ -40,7 +39,7 @@ where
                         error: self.condition.clone(),
                         span: (i.loc, i.loc + 1),
                         rest: PInput {
-                            tokens: i.tokens.clone(),
+                            tokens: i.tokens,
                             loc: i.loc + 1,
                         },
                     })
@@ -50,7 +49,7 @@ where
                 error: "No token to read".to_string(),
                 span: (i.loc, i.loc),
                 rest: PInput {
-                    tokens: i.tokens.clone(),
+                    tokens: i.tokens,
                     loc: i.loc + 1,
                 },
             }),
@@ -58,27 +57,26 @@ where
     }
 }
 
-impl<'a, K, I> Parser<'a, K, I, K> for PSat<K>
+impl<'a, K> Parser<'a, K, K> for PSat<K>
 where
     K: PartialEq + Copy + 'a,
-    I: Iterator<Item = K> + Clone + 'a,
 {
-    fn then<O2, T>(self, p2: T) -> impl Parser<'a, K, I, (K, O2)>
+    fn then<O2, T>(self, p2: T) -> impl Parser<'a, K, (K, O2)>
     where
-        T: Parser<'a, K, I, O2>,
+        T: Parser<'a, K, O2>,
         O2: 'a,
     {
         pseq(self, p2)
     }
 
-    fn or<T>(self, p2: T) -> impl Parser<'a, K, I, K>
+    fn or<T>(self, p2: T) -> impl Parser<'a, K, K>
     where
-        T: Parser<'a, K, I, K>,
+        T: Parser<'a, K, K>,
     {
         por(self, p2)
     }
 
-    fn map<O2, F>(self, f: F) -> impl Parser<'a, K, I, O2>
+    fn map<O2, F>(self, f: F) -> impl Parser<'a, K, O2>
     where
         F: Fn(K) -> O2 + 'static,
         O2: 'a,
@@ -86,37 +84,37 @@ where
         pbind(self, f)
     }
 
-    fn between<A, P1, P2>(self, l: P1, r: P2) -> impl Parser<'a, K, I, K>
+    fn between<A, P1, P2>(self, l: P1, r: P2) -> impl Parser<'a, K, K>
     where
-        P1: Parser<'a, K, I, A>,
-        P2: Parser<'a, K, I, A>,
+        P1: Parser<'a, K, A>,
+        P2: Parser<'a, K, A>,
     {
         pbetween(l, self, r)
     }
 
-    fn many(self) -> impl Parser<'a, K, I, Vec<K>> {
+    fn many(self) -> impl Parser<'a, K, Vec<K>> {
         pmany(self)
     }
 
-    fn not(self) -> impl Parser<'a, K, I, ()> {
+    fn not(self) -> impl Parser<'a, K, ()> {
         pnot(self)
     }
 
-    fn delimited_by<PD, A>(self, delim: PD) -> impl Parser<'a, K, I, Vec<K>>
+    fn delimited_by<PD, A>(self, delim: PD) -> impl Parser<'a, K, Vec<K>>
     where
-        PD: Parser<'a, K, I, A>,
+        PD: Parser<'a, K, A>,
     {
         pdelim(self, delim)
     }
 
-    fn padded_by<P, A>(self, pad: P) -> impl Parser<'a, K, I, K>
+    fn padded_by<P, A>(self, pad: P) -> impl Parser<'a, K, K>
     where
-        P: Parser<'a, K, I, A> + Clone,
+        P: Parser<'a, K, A> + Clone,
     {
         ppadded(self, pad)
     }
 
-    fn into_<Out>(self, out: Out) -> impl Parser<'a, K, I, Out>
+    fn into_<Out>(self, out: Out) -> impl Parser<'a, K, Out>
     where
         Out: PartialEq + Clone + 'a,
     {
