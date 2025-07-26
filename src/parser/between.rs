@@ -114,4 +114,11 @@ where
     fn debug(self, label: &'static str) -> impl Parser<'a, K, O> {
         debug(self, label)
     }
+
+    fn and<P2, A_>(self, second: P2) -> impl Parser<'a, K, O>
+    where
+        P2: Parser<'a, K, A_>,
+    {
+        pand(self, second)
+    }
 }

@@ -1,12 +1,4 @@
-use parsec::{
-    choice,
-    parser::{
-        core::{PSuccess, Parser, ParserCore},
-        recursive::recursive,
-        utils::IntoPInput,
-        *,
-    },
-};
+use parsec::prelude::*;
 
 // See: https://gist.github.com/roachhd/dce54bec8ba55fb17d3a for an overview of BrainFuck
 // > = increases memory pointer, or moves the pointer to the right 1 block.

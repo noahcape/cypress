@@ -66,4 +66,8 @@ pub trait Parser<'a, K: PartialEq + Copy + Clone + 'a, O>: ParserCore<'a, K, O> 
         Out: PartialEq + Clone + 'a;
 
     fn debug(self, label: &'static str) -> impl Parser<'a, K, O>;
+
+    fn and<P2, A>(self, second: P2) -> impl Parser<'a, K, O>
+    where
+        P2: Parser<'a, K, A>;
 }

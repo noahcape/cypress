@@ -1,41 +1,43 @@
 use crate::parser::*;
 
-pub struct PDebug<P> {
-    inner: P,
-    label: &'static str,
+pub struct PAnd<P1, P2, A> {
+    first: P1,
+    second: P2,
+    _marker: PhantomData<A>,
 }
 
-pub fn debug<P>(inner: P, label: &'static str) -> PDebug<P> {
-    PDebug { inner, label }
-}
-
-impl<'a, K, O, P> ParserCore<'a, K, O> for PDebug<P>
-where
-    K: PartialEq + Copy + Clone + 'a,
-    P: Parser<'a, K, O>,
-{
-    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O>, PFail<'a, K>> {
-        match self.inner.parse(i) {
-            Ok(psuccess) => {
-                println!("Successfully parsed with {}", self.label);
-                Ok(psuccess)
-            }
-            Err(PFail { error, span, rest }) => {
-                println!(
-                    "Failed {}: with msg: {} at position span ({}, {})",
-                    self.label, error, span.0, span.1
-                );
-                Err(PFail { error, span, rest })
-            }
-        }
+pub fn pand<P1, P2, A>(first: P1, second: P2) -> PAnd<P1, P2, A> {
+    PAnd {
+        first,
+        second,
+        _marker: PhantomData,
     }
 }
 
-impl<'a, K, O, Inner> Parser<'a, K, O> for PDebug<Inner>
+impl<'a, K, O, P1, P2, A> ParserCore<'a, K, O> for PAnd<P1, P2, A>
 where
     K: PartialEq + Copy + Clone + 'a,
     O: 'a,
-    Inner: Parser<'a, K, O>,
+    P1: Parser<'a, K, O>,
+    P2: Parser<'a, K, A>,
+{
+    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O>, PFail<'a, K>> {
+        let loc = i.loc;
+        let tokens = i.tokens;
+
+        let PSuccess { val, rest } = self.first.parse(i)?;
+        let PSuccess { val: _, rest: _ } = self.second.parse(PInput { tokens, loc })?;
+
+        Ok(PSuccess { val, rest })
+    }
+}
+
+impl<'a, K, O, P1, P2, A> Parser<'a, K, O> for PAnd<P1, P2, A>
+where
+    K: PartialEq + Copy + Clone + 'a,
+    O: 'a,
+    P1: Parser<'a, K, O>,
+    P2: Parser<'a, K, A>,
 {
     fn then<O2, T>(self, p2: T) -> impl Parser<'a, K, (O, O2)>
     where
@@ -60,10 +62,10 @@ where
         pbind(self, f)
     }
 
-    fn between<A, P1, P2>(self, l: P1, r: P2) -> impl Parser<'a, K, O>
+    fn between<A_, P1_, P2_>(self, l: P1_, r: P2_) -> impl Parser<'a, K, O>
     where
-        P1: Parser<'a, K, A>,
-        P2: Parser<'a, K, A>,
+        P1_: Parser<'a, K, A_>,
+        P2_: Parser<'a, K, A_>,
     {
         pbetween(l, self, r)
     }
@@ -72,9 +74,9 @@ where
         pmany(self)
     }
 
-    fn delimited_by<PD, A>(self, delim: PD) -> impl Parser<'a, K, Vec<O>>
+    fn delimited_by<PD, A_>(self, delim: PD) -> impl Parser<'a, K, Vec<O>>
     where
-        PD: Parser<'a, K, A>,
+        PD: Parser<'a, K, A_>,
     {
         pdelim(self, delim)
     }
@@ -83,9 +85,9 @@ where
         pnot(self)
     }
 
-    fn padded_by<P, A>(self, pad: P) -> impl Parser<'a, K, O>
+    fn padded_by<P, A_>(self, pad: P) -> impl Parser<'a, K, O>
     where
-        P: Parser<'a, K, A> + Clone,
+        P: Parser<'a, K, A_> + Clone,
     {
         ppadded(self, pad)
     }
@@ -101,9 +103,9 @@ where
         debug(self, label)
     }
 
-    fn and<P2, A>(self, second: P2) -> impl Parser<'a, K, O>
+    fn and<P2_, A_>(self, second: P2_) -> impl Parser<'a, K, O>
     where
-        P2: Parser<'a, K, A>,
+        P2_: Parser<'a, K, A_>,
     {
         pand(self, second)
     }

@@ -1,10 +1,4 @@
-use parsec::{
-    choice,
-    parser::{
-        between::pbetween, core::*, ident::pident, padded::ppadded, recursive::recursive,
-        utils::IntoPInput, *,
-    },
-};
+use parsec::prelude::*;
 
 #[test]
 fn t_just() {
@@ -117,6 +111,21 @@ fn t_ident() {
         Ok(PSuccess { val, rest: _ }) => {
             assert_eq!(val, (String::from("Noah"), String::from("Cape")))
         }
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn t_pstring() {
+    let input = "\"This is a string\"".into_input();
+
+    let parser = just('\"')
+        .then(any().and(just('\"').not()).many())
+        .then(just('\"'))
+        .map(|((_, xs), _)| String::from_utf8(xs).unwrap());
+
+    match parser.parse(input) {
+        Ok(PSuccess { val, rest: _ }) => assert_eq!(val, String::from("This is a string")),
         Err(_) => assert!(false),
     }
 }

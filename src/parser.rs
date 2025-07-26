@@ -44,6 +44,9 @@ pub mod ident;
 pub mod debug;
 use debug::*;
 
+pub mod and;
+use and::*;
+
 pub fn just<K, T>(t: T) -> PSat<K>
 where
     K: PartialEq + Display + Copy + 'static,
@@ -84,4 +87,11 @@ where
         Box::new(|i: K| Into::<char>::into(i).is_ascii_whitespace()),
         "Token is not whitespace.",
     )
+}
+
+pub fn any<K>() -> PSat<K>
+where
+    K: PartialEq + Copy + 'static,
+{
+    psat(Box::new(|_| true), "")
 }

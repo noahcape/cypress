@@ -37,3 +37,12 @@ where
         }
     }
 }
+
+impl<'a> IntoPInput<'a, u8> for &'a str {
+    fn into_input(self) -> PInput<'a, u8> {
+        PInput {
+            tokens: self.as_bytes(),
+            loc: 0,
+        }
+    }
+}
