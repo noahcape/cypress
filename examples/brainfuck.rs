@@ -1,8 +1,9 @@
 use parsec::{
     choice,
     parser::{
-        core::{PSuccess, Parser, ParserCore, prepare},
+        core::{PSuccess, Parser, ParserCore},
         recursive::recursive,
+        utils::IntoPInput,
         *,
     },
 };
@@ -32,20 +33,22 @@ fn main() {
     let parser = recursive(|expr| {
         Box::new(
             choice!(
-                just('<').into_(Instruction::Left),
-                just('>').into_(Instruction::Right),
-                just('+').into_(Instruction::Increment),
-                just('-').into_(Instruction::Decrement),
-                just(',').into_(Instruction::Read),
-                just('.').into_(Instruction::Write),
+                just('<').into_(Instruction::Left).debug("< parser"),
+                just('>').into_(Instruction::Right).debug("> parser"),
+                just('+').into_(Instruction::Increment).debug("+ parser"),
+                just('-').into_(Instruction::Decrement).debug("- parser"),
+                just(',').into_(Instruction::Read).debug(", parser"),
+                just('.').into_(Instruction::Write).debug(". parser"),
                 expr.between(just('['), just(']'))
-                    .map(|expr| Instruction::Loop(expr)),
+                    .map(|expr| Instruction::Loop(expr))
+                    .debug("[ .. ] parser"),
             )
-            .many(),
+            .many()
+            .debug("Recursive bf parser"),
         )
     });
 
-    let input = prepare("+++++[>>+<<-]".as_bytes());
+    let input = b"+++++[>>+<<-]".into_input();
 
     let expected_bf = vec![
         Instruction::Increment,

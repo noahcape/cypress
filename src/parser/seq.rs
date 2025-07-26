@@ -94,4 +94,8 @@ where
     {
         pinto(self, out)
     }
+
+    fn debug(self, label: &'static str) -> impl Parser<'a, K, (O1, O2)> {
+        debug(self, label)
+    }
 }

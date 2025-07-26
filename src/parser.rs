@@ -39,6 +39,11 @@ use into::*;
 pub mod utils;
 use utils::*;
 
+pub mod ident;
+
+pub mod debug;
+use debug::*;
+
 pub fn just<K, T>(t: T) -> PSat<K>
 where
     K: PartialEq + Display + Copy + 'static,
@@ -47,7 +52,7 @@ where
     let token: K = t.into_token();
     psat(
         Box::new(move |i: K| i.eq(&token)),
-        format!("Token doesn't match {token}"),
+        format!("Token at position doesn't match {token} (u8 rep)"),
     )
 }
 
@@ -73,7 +78,7 @@ where
 
 pub fn pws<K>() -> PSat<K>
 where
-    K: PartialEq + Display + Copy + Into<char> + 'static,
+    K: PartialEq + Copy + Into<char> + 'static,
 {
     psat(
         Box::new(|i: K| Into::<char>::into(i).is_ascii_whitespace()),

@@ -1,55 +1,41 @@
 use crate::parser::*;
 
-pub struct PPaddedBy<P, PD, A> {
-    p: P,
-    pad: PD,
-    _marker: PhantomData<A>,
+pub struct PDebug<P> {
+    inner: P,
+    label: &'static str,
 }
 
-pub fn ppadded<P, PD, A>(p: P, pad: PD) -> PPaddedBy<P, PD, A> {
-    PPaddedBy {
-        p,
-        pad,
-        _marker: PhantomData,
+pub fn debug<P>(inner: P, label: &'static str) -> PDebug<P> {
+    PDebug { inner, label }
+}
+
+impl<'a, K, O, P> ParserCore<'a, K, O> for PDebug<P>
+where
+    K: PartialEq + Copy + Clone + 'a,
+    P: Parser<'a, K, O>,
+{
+    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O>, PFail<'a, K>> {
+        match self.inner.parse(i) {
+            Ok(psuccess) => {
+                println!("Successfully parsed with {}", self.label);
+                Ok(psuccess)
+            }
+            Err(PFail { error, span, rest }) => {
+                println!(
+                    "Failed {}: with msg: {} at position span ({}, {})",
+                    self.label, error, span.0, span.1
+                );
+                Err(PFail { error, span, rest })
+            }
+        }
     }
 }
 
-impl<'a, K, O, P, PD, A> ParserCore<'a, K, O> for PPaddedBy<P, PD, A>
+impl<'a, K, O, Inner> Parser<'a, K, O> for PDebug<Inner>
 where
     K: PartialEq + Copy + Clone + 'a,
     O: 'a,
-    P: Parser<'a, K, O>,
-    PD: Parser<'a, K, A> + Clone,
-{
-    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O>, PFail<'a, K>> {
-        let pad = self.pad.clone().many();
-
-        let PSuccess {
-            rest: after_pad1, ..
-        } = pad.parse(i)?;
-
-        let PSuccess {
-            val,
-            rest: after_main,
-        } = self.p.parse(after_pad1)?;
-
-        let PSuccess {
-            rest: after_pad2, ..
-        } = pad.parse(after_main)?;
-
-        Ok(PSuccess {
-            val,
-            rest: after_pad2,
-        })
-    }
-}
-
-impl<'a, K, O, P, PD, B> Parser<'a, K, O> for PPaddedBy<P, PD, B>
-where
-    K: PartialEq + Copy + 'a,
-    O: 'a,
-    P: Parser<'a, K, O>,
-    PD: Parser<'a, K, B> + Clone,
+    Inner: Parser<'a, K, O>,
 {
     fn then<O2, T>(self, p2: T) -> impl Parser<'a, K, (O, O2)>
     where
@@ -86,20 +72,20 @@ where
         pmany(self)
     }
 
-    fn not(self) -> impl Parser<'a, K, ()> {
-        pnot(self)
-    }
-
-    fn delimited_by<PD_, A>(self, delim: PD_) -> impl Parser<'a, K, Vec<O>>
+    fn delimited_by<PD, A>(self, delim: PD) -> impl Parser<'a, K, Vec<O>>
     where
-        PD_: Parser<'a, K, A>,
+        PD: Parser<'a, K, A>,
     {
         pdelim(self, delim)
     }
 
-    fn padded_by<Pad, A>(self, pad: Pad) -> impl Parser<'a, K, O>
+    fn not(self) -> impl Parser<'a, K, ()> {
+        pnot(self)
+    }
+
+    fn padded_by<P, A>(self, pad: P) -> impl Parser<'a, K, O>
     where
-        Pad: Parser<'a, K, A> + Clone,
+        P: Parser<'a, K, A> + Clone,
     {
         ppadded(self, pad)
     }

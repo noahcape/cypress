@@ -8,7 +8,7 @@ pub struct PSat<K: PartialEq> {
 
 pub fn psat<K, F>(test: F, condition: impl Into<String>) -> PSat<K>
 where
-    K: PartialEq + Display,
+    K: PartialEq,
     F: Fn(K) -> bool + 'static,
 {
     let func = move |input: K| test(input);
@@ -119,5 +119,9 @@ where
         Out: PartialEq + Clone + 'a,
     {
         pinto(self, out)
+    }
+
+    fn debug(self, label: &'static str) -> impl Parser<'a, K, K> {
+        debug(self, label)
     }
 }

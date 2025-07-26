@@ -1,11 +1,14 @@
 use parsec::{
     choice,
-    parser::{between::pbetween, core::*, padded::ppadded, recursive::recursive, *},
+    parser::{
+        between::pbetween, core::*, ident::pident, padded::ppadded, recursive::recursive,
+        utils::IntoPInput, *,
+    },
 };
 
 #[test]
 fn t_just() {
-    let input = prepare(b"ABC");
+    let input = b"ABC".into_input();
 
     let parser = just('A');
 
@@ -17,7 +20,7 @@ fn t_just() {
 
 #[test]
 fn t_then() {
-    let input = prepare(b"ABC");
+    let input = b"ABC".into_input();
 
     let parser = just('A').then(just('B'));
 
@@ -29,7 +32,7 @@ fn t_then() {
 
 #[test]
 fn t_or() {
-    let input = prepare(b"B");
+    let input = b"B".into_input();
 
     let parser = just('A').or(just('B'));
 
@@ -41,7 +44,7 @@ fn t_or() {
 
 #[test]
 fn t_map() {
-    let input = prepare(b"A");
+    let input = b"A".into_input();
 
     let parser = just('A').map(|_| 1);
 
@@ -53,7 +56,7 @@ fn t_map() {
 
 #[test]
 fn t_choice() {
-    let input = prepare(b"A");
+    let input = b"A".into_input();
 
     let parser = choice!(just('C'), just('A'), just('C'));
 
@@ -65,7 +68,7 @@ fn t_choice() {
 
 #[test]
 fn t_pbetween() {
-    let input = prepare("[A]".as_bytes());
+    let input = "[A]".as_bytes().into_input();
 
     let parser = pbetween(just('['), just('A'), just(']'));
 
@@ -77,7 +80,7 @@ fn t_pbetween() {
 
 #[test]
 fn t_pmany() {
-    let input = prepare("ABCDE".as_bytes());
+    let input = b"ABCDE".into_input();
 
     let parser = pletter().many();
 
@@ -89,7 +92,7 @@ fn t_pmany() {
 
 #[test]
 fn t_padded() {
-    let input = prepare("   A   ".as_bytes());
+    let input = b"   A   ".into_input();
 
     let parser = ppadded(just('A'), pws::<u8>());
 
@@ -103,8 +106,24 @@ fn t_padded() {
 }
 
 #[test]
+fn t_ident() {
+    let input = b"Noah Cape".into_input();
+
+    let parser = pident("Noah")
+        .padded_by(pws())
+        .then(pident("Cape").padded_by(pws()));
+
+    match parser.parse(input) {
+        Ok(PSuccess { val, rest: _ }) => {
+            assert_eq!(val, (String::from("Noah"), String::from("Cape")))
+        }
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
 fn t_recursive() {
-    let input = prepare("(1+(2+3))".as_bytes());
+    let input = b"(1+(2+3))".into_input();
 
     #[derive(Debug, PartialEq)]
     enum AST {

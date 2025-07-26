@@ -4,13 +4,6 @@ pub struct PInput<'a, T: PartialEq + Copy + Clone + 'a> {
     pub loc: usize,
 }
 
-pub fn prepare<'a, T>(i: &'a [T]) -> PInput<'a, T>
-where
-    T: PartialEq + Copy + Clone,
-{
-    PInput { tokens: i, loc: 0 }
-}
-
 #[derive(Clone)]
 pub struct PSuccess<'a, T, O>
 where
@@ -71,4 +64,6 @@ pub trait Parser<'a, K: PartialEq + Copy + Clone + 'a, O>: ParserCore<'a, K, O> 
     fn into_<Out>(self, out: Out) -> impl Parser<'a, K, Out>
     where
         Out: PartialEq + Clone + 'a;
+
+    fn debug(self, label: &'static str) -> impl Parser<'a, K, O>;
 }
