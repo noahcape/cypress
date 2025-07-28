@@ -11,24 +11,19 @@ pub mod recursive;
 /// Parsers that handle padding around other parsers,
 /// such as whitespace or delimiters before and after.
 pub mod padded;
-use padded::*;
 
 /// Negative lookahead parser combinators,
 /// succeed if the inner parser fails at current input.
 pub mod not;
-use not::*;
 
 /// Parsers handling delimiters, useful for parsing separated lists or tokens.
 pub mod delim;
-use delim::*;
 
 /// Parsers for matching zero or more repetitions of a pattern.
 pub mod many;
-use many::*;
 
 /// Parsers allowing binding transformations of output.
 pub mod bind;
-use bind::*;
 
 /// Parsers that match tokens satisfying predicates.
 /// Useful for matching specific token classes.
@@ -37,7 +32,6 @@ use sat::*;
 
 /// Parsers sequencing multiple parsers in order.
 pub mod seq;
-use seq::*;
 
 /// Choice combinators allowing trying multiple parsers in sequence,
 /// succeeding on the first successful parser.
@@ -45,16 +39,13 @@ use seq::*;
 /// This module exports the `choice!` macro for convenient chaining.
 #[macro_use]
 pub mod or;
-use or::*;
 
 /// Parsers that match between two delimiters.
 /// Useful for bracketed or quoted sections.
 pub mod between;
-use between::*;
 
 /// Conversions from input types (like slices, strings) into specified tokens.
 pub mod into;
-use into::*;
 
 /// Utility functions and helpers used internally by parsers.
 pub mod utils;
@@ -65,11 +56,9 @@ pub mod ident;
 
 /// Debugging parsers that print trace information for parser steps.
 pub mod debug;
-use debug::*;
 
 /// Parsers that combine multiple conditions (AND combinators).
 pub mod and;
-use and::*;
 
 /// Creates a parser that matches exactly one token equal to `t`.
 ///
@@ -123,7 +112,7 @@ where
 /// A `PSat` parser that accepts tokens representing ASCII letters (A-Z, a-z).
 pub fn pletter<K>() -> PSat<K>
 where
-    K: PartialEq + Display + Copy + Into<char> + 'static,
+    K: PartialEq + Copy + Into<char> + 'static,
 {
     psat(
         Box::new(|i: K| Into::<char>::into(i).is_ascii_alphabetic()),

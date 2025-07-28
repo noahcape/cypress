@@ -63,6 +63,8 @@ pub fn pbetween<L, P, R, A>(l: L, p: P, r: R) -> PBetween<L, P, R, A> {
 impl<'a, K, O, L, P, R, A> ParserCore<'a, K, O> for PBetween<L, P, R, A>
 where
     K: PartialEq + Copy + Clone + 'a,
+    A: 'a,
+    O: 'a,
     L: Parser<'a, K, A>,
     P: Parser<'a, K, O>,
     R: Parser<'a, K, A>,
@@ -98,78 +100,9 @@ impl<'a, K, O, L, P, R, A> Parser<'a, K, O> for PBetween<L, P, R, A>
 where
     K: PartialEq + Copy + Clone + 'a,
     O: 'a,
+    A: 'a,
     L: Parser<'a, K, A>,
     P: Parser<'a, K, O>,
     R: Parser<'a, K, A>,
 {
-    fn then<O2, T>(self, p2: T) -> impl Parser<'a, K, (O, O2)>
-    where
-        T: Parser<'a, K, O2>,
-        O2: 'a,
-    {
-        pseq(self, p2)
-    }
-
-    fn or<T>(self, p2: T) -> impl Parser<'a, K, O>
-    where
-        T: Parser<'a, K, O>,
-    {
-        por(self, p2)
-    }
-
-    fn map<O2, F>(self, f: F) -> impl Parser<'a, K, O2>
-    where
-        F: Fn(O) -> O2 + 'static,
-        O2: 'a,
-    {
-        pbind(self, f)
-    }
-
-    fn between<B, P1, P2>(self, l: P1, r: P2) -> impl Parser<'a, K, O>
-    where
-        P1: Parser<'a, K, B>,
-        P2: Parser<'a, K, B>,
-    {
-        pbetween(l, self, r)
-    }
-
-    fn many(self) -> impl Parser<'a, K, Vec<O>> {
-        pmany(self)
-    }
-
-    fn not(self) -> impl Parser<'a, K, ()> {
-        pnot(self)
-    }
-
-    fn delimited_by<PD, A_>(self, delim: PD) -> impl Parser<'a, K, Vec<O>>
-    where
-        PD: Parser<'a, K, A_>,
-    {
-        pdelim(self, delim)
-    }
-
-    fn padded_by<Pad, C>(self, pad: Pad) -> impl Parser<'a, K, O>
-    where
-        Pad: Parser<'a, K, C> + Clone,
-    {
-        ppadded(self, pad)
-    }
-
-    fn into_<Out>(self, out: Out) -> impl Parser<'a, K, Out>
-    where
-        Out: PartialEq + Clone + 'a,
-    {
-        pinto(self, out)
-    }
-
-    fn debug(self, label: &'static str) -> impl Parser<'a, K, O> {
-        debug(self, label)
-    }
-
-    fn and<P2, A_>(self, second: P2) -> impl Parser<'a, K, O>
-    where
-        P2: Parser<'a, K, A_>,
-    {
-        pand(self, second)
-    }
 }

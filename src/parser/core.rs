@@ -1,3 +1,7 @@
+use crate::prelude::{
+    debug, pand, pbetween, pbind, pdelim, pinto, pmany, pnot, por, ppadded, pseq,
+};
+
 /// Represents a parsing input state, including a slice of tokens and a position index.
 ///
 /// This is the fundamental data structure passed to all parsers. It abstracts over token streams,
@@ -81,56 +85,92 @@ where
 /// - `'a`: Lifetime of the input
 /// - `K`: Token type
 /// - `O`: Output type of the parser
-pub trait Parser<'a, K: PartialEq + Copy + Clone + 'a, O>: ParserCore<'a, K, O> + Sized {
+pub trait Parser<'a, K: PartialEq + Copy + Clone + 'a, O: 'a>:
+    ParserCore<'a, K, O> + Sized
+{
     /// Sequence two parsers and return a tuple of their results.
     fn then<O2, T>(self, p2: T) -> impl Parser<'a, K, (O, O2)>
     where
         T: Parser<'a, K, O2>,
-        O2: 'a;
+        O2: 'a,
+    {
+        pseq(self, p2)
+    }
 
     /// Try this parser or an alternative parser if this one fails.
     fn or<T>(self, p2: T) -> impl Parser<'a, K, O>
     where
-        T: Parser<'a, K, O>;
+        T: Parser<'a, K, O>,
+    {
+        por(self, p2)
+    }
 
     /// Apply a function to transform the output of the parser.
     fn map<O2, F>(self, f: F) -> impl Parser<'a, K, O2>
     where
         F: Fn(O) -> O2 + 'static,
-        O2: 'a;
+        O2: 'a,
+    {
+        pbind(self, f)
+    }
 
     /// Apply this parser between two delimiters, discarding the delimiters' results.
     fn between<A, P1, P2>(self, l: P1, r: P2) -> impl Parser<'a, K, O>
     where
+        A: 'a,
         P1: Parser<'a, K, A>,
-        P2: Parser<'a, K, A>;
+        P2: Parser<'a, K, A>,
+    {
+        pbetween(l, self, r)
+    }
 
     /// Match this parser zero or more times and collect the results.
-    fn many(self) -> impl Parser<'a, K, Vec<O>>;
+    fn many(self) -> impl Parser<'a, K, Vec<O>> {
+        pmany(self)
+    }
 
     /// Parse this parser separated by a delimiter (but keep only the content values).
     fn delimited_by<PD, A>(self, delim: PD) -> impl Parser<'a, K, Vec<O>>
     where
-        PD: Parser<'a, K, A>;
+        A: 'a,
+        PD: Parser<'a, K, A>,
+    {
+        pdelim(self, delim)
+    }
 
     /// Succeeds only if this parser fails, and vice versa. Produces no value.
-    fn not(self) -> impl Parser<'a, K, ()>;
+    fn not(self) -> impl Parser<'a, K, ()> {
+        pnot(self)
+    }
 
     /// Surround this parser with padding (like whitespace) and return the result.
     fn padded_by<P, A>(self, pad: P) -> impl Parser<'a, K, O>
     where
-        P: Parser<'a, K, A> + Clone;
+        A: 'a,
+        P: Parser<'a, K, A> + Clone,
+    {
+        ppadded(self, pad)
+    }
 
     /// Ignores the actual parsed value and replaces it with a given one.
     fn into_<Out>(self, out: Out) -> impl Parser<'a, K, Out>
     where
-        Out: PartialEq + Clone + 'a;
+        Out: PartialEq + Clone + 'a,
+    {
+        pinto(self, out)
+    }
 
     /// Debug tracing combinator to help inspect parsing behavior.
-    fn debug(self, label: &'static str) -> impl Parser<'a, K, O>;
+    fn debug(self, label: &'static str) -> impl Parser<'a, K, O> {
+        debug(self, label)
+    }
 
     /// Apply another parser after this one, but return only the result of the first as well as the location after parsing.
     fn and<P2, A>(self, second: P2) -> impl Parser<'a, K, O>
     where
-        P2: Parser<'a, K, A>;
+        A: 'a,
+        P2: Parser<'a, K, A>,
+    {
+        pand(self, second)
+    }
 }
