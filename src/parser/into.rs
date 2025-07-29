@@ -49,7 +49,7 @@ pub fn pinto<P, In, Out>(p: P, out: Out) -> PInto<P, In, Out> {
 
 impl<'a, K, P, In, Out> ParserCore<'a, K, Out> for PInto<P, In, Out>
 where
-    K: PartialEq + Copy + Clone + 'a,
+    K: PartialEq + Clone + 'a,
     In: 'a,
     P: Parser<'a, K, In>,
     Out: PartialEq + Clone,
@@ -76,7 +76,7 @@ where
 
 impl<'a, K, P, In, Out> Parser<'a, K, Out> for PInto<P, In, Out>
 where
-    K: PartialEq + Copy + Clone + 'a,
+    K: PartialEq + Clone + 'a,
     Out: PartialEq + Clone + 'a,
     In: 'a,
     P: Parser<'a, K, In>,

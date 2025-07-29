@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 use parsec::prelude::*;
 
@@ -10,6 +10,26 @@ enum Expr {
     Assignment(String, Box<Expr>),
     Print(Box<Expr>),
     Seq(Vec<Expr>),
+}
+
+impl Display for Expr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Expr::Str(str) => write!(f, "\"{}\"", str),
+            Expr::Num(num) => write!(f, "{}", num),
+            Expr::Var(var) => write!(f, "{}", var),
+            Expr::Assignment(name, expr) => write!(f, "{} = {}", name, expr),
+            Expr::Print(expr) => write!(f, "{}", expr),
+            Expr::Seq(exprs) => write!(
+                f,
+                "{}\n",
+                exprs
+                    .iter()
+                    .map(|expr| format!("{}", expr))
+                    .collect::<String>()
+            ),
+        }
+    }
 }
 
 fn num<'a>() -> impl Parser<'a, u8, i32> {
@@ -36,13 +56,10 @@ fn ident<'a>() -> impl Parser<'a, u8, String> {
 }
 
 fn var_assignment<'a>(expr: impl Parser<'a, u8, Expr>) -> impl Parser<'a, u8, Expr> {
-    let let_ident = pident("let").padded_by(pws());
-
-    let_ident
-        .then(ident())
+    ident()
         .then(just('=').padded_by(pws()))
         .then(expr)
-        .map(|(((_, name), _), val)| Expr::Assignment(name, Box::new(val)))
+        .map(|((name, _), val)| Expr::Assignment(name, Box::new(val)))
 }
 
 fn print<'a>(expr: impl Parser<'a, u8, Expr>) -> impl Parser<'a, u8, Expr> {
@@ -87,7 +104,7 @@ fn eval<'a>(expr: Expr, var_map: &mut HashMap<String, Expr>) -> Result<Expr, Str
         }
         Expr::Print(expr) => {
             let eval_expr = eval(*expr, var_map)?;
-            println!("{:?}", eval_expr);
+            println!("{}", eval_expr);
             Ok(eval_expr)
         }
         Expr::Seq(exprs) => {
@@ -106,8 +123,12 @@ fn eval<'a>(expr: Expr, var_map: &mut HashMap<String, Expr>) -> Result<Expr, Str
 }
 
 fn main() {
-    let input = b"let variable = print let this = 4
-let x = print x";
+    let input = b"y = print z = 4
+x = print y
+y = 10
+print y
+print x
+print z";
 
     match parser().parse(input.into_input()) {
         Ok(PSuccess { val, rest: _ }) => {

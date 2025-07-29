@@ -11,7 +11,7 @@ use crate::prelude::{
 /// - `'a`: The lifetime of the token slice
 /// - `T`: The token type (e.g., `char`, `u8`, etc.)
 #[derive(Clone, Debug)]
-pub struct PInput<'a, T: PartialEq + Copy + Clone + 'a> {
+pub struct PInput<'a, T: PartialEq + Clone + 'a> {
     /// Slice of tokens being parsed
     pub tokens: &'a [T],
 
@@ -30,7 +30,7 @@ pub struct PInput<'a, T: PartialEq + Copy + Clone + 'a> {
 #[derive(Clone)]
 pub struct PSuccess<'a, T, O>
 where
-    T: PartialEq + Copy + Clone,
+    T: PartialEq + Clone,
 {
     /// The value produced by the parser
     pub val: O,
@@ -48,7 +48,7 @@ where
 /// - `T`: Token type
 pub struct PFail<'a, T>
 where
-    T: PartialEq + Copy + Clone,
+    T: PartialEq + Clone,
 {
     /// Human-readable error message
     pub error: String,
@@ -70,7 +70,7 @@ where
 /// - `O`: Output type of the parser
 pub trait ParserCore<'a, K, O>
 where
-    K: PartialEq + Copy + Clone + 'a,
+    K: PartialEq + Clone + 'a,
 {
     /// Attempt to parse from the given input, returning a result or failure.
     fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O>, PFail<'a, K>>;
@@ -85,9 +85,7 @@ where
 /// - `'a`: Lifetime of the input
 /// - `K`: Token type
 /// - `O`: Output type of the parser
-pub trait Parser<'a, K: PartialEq + Copy + Clone + 'a, O: 'a>:
-    ParserCore<'a, K, O> + Sized
-{
+pub trait Parser<'a, K: PartialEq + Clone + 'a, O: 'a>: ParserCore<'a, K, O> + Sized {
     /// Sequence two parsers and return a tuple of their results.
     fn then<O2, T>(self, p2: T) -> impl Parser<'a, K, (O, O2)>
     where

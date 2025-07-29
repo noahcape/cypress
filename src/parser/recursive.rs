@@ -85,7 +85,7 @@ impl<'a, K, O> Clone for PRecursive<'a, K, O> {
 /// ```
 pub fn recursive<'a, K, O, F>(f: F) -> PRecursive<'a, K, O>
 where
-    K: PartialEq + Copy + 'a,
+    K: PartialEq + 'a,
     O: 'a,
     F: FnOnce(PRecursive<'a, K, O>) -> Box<dyn ParserCore<'a, K, O> + 'a>,
 {
@@ -105,7 +105,7 @@ where
 
 impl<'a, K, O> ParserCore<'a, K, O> for PRecursive<'a, K, O>
 where
-    K: PartialEq + Copy + 'a,
+    K: PartialEq + Clone + 'a,
     O: 'a,
 {
     /// Parses input by delegating to the internally stored parser.
@@ -131,7 +131,7 @@ where
 
 impl<'a, K, O> Parser<'a, K, O> for PRecursive<'a, K, O>
 where
-    K: PartialEq + Copy + 'a,
+    K: PartialEq + Clone + 'a,
     O: 'a,
 {
 }

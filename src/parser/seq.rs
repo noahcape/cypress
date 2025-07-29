@@ -9,7 +9,7 @@ use crate::parser::*;
 ///
 /// * `P1` - The first parser type.
 /// * `P2` - The second parser type.
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct PSeq<P1, P2> {
     /// The first parser to run.
     p1: P1,
@@ -34,7 +34,7 @@ pub fn pseq<P1, P2>(p1: P1, p2: P2) -> PSeq<P1, P2> {
 
 impl<'a, P1, P2, K, O1, O2> ParserCore<'a, K, (O1, O2)> for PSeq<P1, P2>
 where
-    K: PartialEq + Copy + Clone + 'a,
+    K: PartialEq + Clone + 'a,
     O1: 'a,
     O2: 'a,
     P1: Parser<'a, K, O1>,
@@ -69,7 +69,7 @@ where
 
 impl<'a, P1, P2, K, O1, O2> Parser<'a, K, (O1, O2)> for PSeq<P1, P2>
 where
-    K: PartialEq + Copy + Clone + 'a,
+    K: PartialEq + Clone + 'a,
     O1: 'a,
     O2: 'a,
     P1: Parser<'a, K, O1>,

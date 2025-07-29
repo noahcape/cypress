@@ -27,9 +27,9 @@ pub fn pident<'a>(ident: &'a str) -> PIdent<'a> {
     PIdent { ident }
 }
 
-impl<'a, K> ParserCore<'a, K, String> for PIdent<'a>
+impl<'a, K> ParserCore<'a, K, &'a str> for PIdent<'a>
 where
-    K: PartialEq + Copy + Clone + Into<char> + 'a,
+    K: PartialEq + Clone + PartialEq<u8> + 'a,
 {
     /// Attempts to parse the identifier string from the input.
     ///
@@ -47,7 +47,7 @@ where
     ///   if the input matches the identifier exactly.
     /// * `Err(PFail)` containing an error message, the span of the failed match,
     ///   and the input position after the attempted parse if the match fails.
-    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, String>, PFail<'a, K>> {
+    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, &'a str>, PFail<'a, K>> {
         let ident_len = self.ident.len();
 
         if i.tokens.len() < i.loc + ident_len {
@@ -61,33 +61,38 @@ where
             });
         }
 
-        // Extract a substring from input tokens matching the length of the identifier
-        let potential_match = i.tokens[i.loc..i.loc + ident_len]
+        // Compare input tokens to identified
+        if i.tokens[i.loc..i.loc + ident_len]
             .iter()
-            .map(|t| Into::<char>::into(*t))
-            .collect::<String>();
-
-        if self.ident.eq(&potential_match) {
-            // Successful parse: return matched string and updated location
-            Ok(PSuccess {
-                val: potential_match,
-                rest: PInput {
-                    tokens: i.tokens,
-                    loc: i.loc + ident_len,
-                },
-            })
-        } else {
+            .zip(self.ident.as_bytes())
+            .any(|(a, b)| !(a.eq(b)))
+        {
             // Failed parse: return error message, span, and updated input location
             Err(PFail {
-                error: format!("Expected {} found {}", self.ident, potential_match),
+                error: format!("Expected {}", self.ident),
+                // i.tokens[i.loc..i.loc + ident_len]
                 span: (i.loc, i.loc + ident_len),
                 rest: PInput {
                     tokens: i.tokens,
                     loc: i.loc + ident_len,
                 },
             })
+        } else {
+            // Successful parse: return matched string and updated location
+            Ok(PSuccess {
+                val: self.ident,
+                rest: PInput {
+                    tokens: i.tokens,
+                    loc: i.loc + ident_len,
+                },
+            })
         }
+        // let ident_bytes = self.ident.as_bytes();
+
+        // if ident_bytes.eq(potential_match.as_slice()) {
+        // } else {
+        // }
     }
 }
 
-impl<'a, K> Parser<'a, K, String> for PIdent<'a> where K: PartialEq + Copy + Clone + Into<char> + 'a {}
+impl<'a, K> Parser<'a, K, &'a str> for PIdent<'a> where K: PartialEq + Clone + PartialEq<u8> + 'a {}

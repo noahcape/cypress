@@ -37,7 +37,7 @@ pub fn pnot<P, O>(p: P) -> PNot<P, O> {
 
 impl<'a, K, O, P> ParserCore<'a, K, ()> for PNot<P, O>
 where
-    K: PartialEq + Copy + Clone + 'a,
+    K: PartialEq + Clone + 'a,
     O: 'a,
     P: Parser<'a, K, O>,
 {
@@ -73,7 +73,7 @@ where
 
 impl<'a, K, O, P> Parser<'a, K, ()> for PNot<P, O>
 where
-    K: PartialEq + Copy + Clone + 'a,
+    K: PartialEq + Clone + 'a,
     O: 'a,
     P: Parser<'a, K, O>,
 {

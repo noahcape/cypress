@@ -62,7 +62,7 @@ macro_rules! choice {
 
 impl<'a, K, O, P1, P2> ParserCore<'a, K, O> for POr<P1, P2>
 where
-    K: PartialEq + Copy + Clone + 'a,
+    K: PartialEq + Clone + 'a,
     O: 'a,
     P1: Parser<'a, K, O>,
     P2: Parser<'a, K, O>,
@@ -90,7 +90,7 @@ where
 
 impl<'a, K, O, P1, P2> Parser<'a, K, O> for POr<P1, P2>
 where
-    K: PartialEq + Copy + Clone + 'a,
+    K: PartialEq + Clone + 'a,
     O: 'a,
     P1: Parser<'a, K, O>,
     P2: Parser<'a, K, O>,

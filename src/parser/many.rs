@@ -30,7 +30,7 @@ pub fn pmany<P>(p: P) -> PMany<P> {
 
 impl<'a, K, O, P> ParserCore<'a, K, Vec<O>> for PMany<P>
 where
-    K: PartialEq + Copy + Clone + 'a,
+    K: PartialEq + Clone + 'a,
     O: 'a,
     P: Parser<'a, K, O>,
 {
@@ -67,7 +67,7 @@ where
 
 impl<'a, K, O, P> Parser<'a, K, Vec<O>> for PMany<P>
 where
-    K: PartialEq + Copy + Clone + 'a,
+    K: PartialEq + Clone + 'a,
     O: 'a,
     P: Parser<'a, K, O>,
 {

@@ -29,7 +29,7 @@ pub fn debug<P>(inner: P, label: &'static str) -> PDebug<P> {
 
 impl<'a, K, O, P> ParserCore<'a, K, O> for PDebug<P>
 where
-    K: PartialEq + Copy + Clone + 'a,
+    K: PartialEq + Clone + 'a,
     O: 'a,
     P: Parser<'a, K, O>,
 {
@@ -62,7 +62,7 @@ where
 
 impl<'a, K, O, Inner> Parser<'a, K, O> for PDebug<Inner>
 where
-    K: PartialEq + Copy + Clone + 'a,
+    K: PartialEq + Clone + 'a,
     O: 'a,
     Inner: Parser<'a, K, O>,
 {

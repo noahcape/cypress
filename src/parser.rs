@@ -51,6 +51,8 @@ pub mod into;
 pub mod utils;
 use utils::*;
 
+use crate::text::Char;
+
 /// Parsers specifically for identifiers.
 pub mod ident;
 
@@ -64,7 +66,7 @@ pub mod and;
 ///
 /// # Type Parameters
 ///
-/// * `K` - The token type (must implement `PartialEq`, `Display`, `Copy`).
+/// * `K` - The token type (must implement `PartialEq`, `Display`).
 /// * `T` - The input type convertible into `K`.
 ///
 /// # Returns
@@ -72,13 +74,13 @@ pub mod and;
 /// A `PSat` parser that accepts only the token `t`.
 pub fn just<K, T>(t: T) -> PSat<K>
 where
-    K: PartialEq + Display + Copy + 'static,
-    T: IntoToken<K> + Copy,
+    K: PartialEq + Display + Clone + 'static,
+    T: IntoToken<K>,
 {
     let token: K = t.into_token();
     psat(
-        Box::new(move |i: K| i.eq(&token)),
-        format!("Token at position doesn't match {token} (u8 rep)"),
+        Box::new(move |i: &K| i.eq(&token)),
+        "Token at position doesn't match".to_string(),
     )
 }
 
@@ -93,10 +95,10 @@ where
 /// A `PSat` parser that accepts tokens representing ASCII digits (0-9).
 pub fn pnum<K>() -> PSat<K>
 where
-    K: PartialEq + Display + Copy + Into<char> + 'static,
+    K: PartialEq + Display + Char + 'static,
 {
     psat(
-        Box::new(move |i: K| Into::<char>::into(i).is_ascii_digit()),
+        Box::new(move |i: &K| i.is_digit(10)),
         "Token is not a number",
     )
 }
@@ -112,10 +114,13 @@ where
 /// A `PSat` parser that accepts tokens representing ASCII letters (A-Z, a-z).
 pub fn pletter<K>() -> PSat<K>
 where
-    K: PartialEq + Copy + Into<char> + 'static,
+    K: PartialEq + Char + 'static,
 {
     psat(
-        Box::new(|i: K| Into::<char>::into(i).is_ascii_alphabetic()),
+        Box::new(|i: &K| match i.to_ascii() {
+            Some(tok) => tok.is_ascii_alphabetic(),
+            None => false,
+        }),
         "Token is not a letter.",
     )
 }
@@ -131,10 +136,10 @@ where
 /// A `PSat` parser that accepts tokens representing ASCII whitespace.
 pub fn pws<K>() -> PSat<K>
 where
-    K: PartialEq + Copy + Into<char> + 'static,
+    K: PartialEq + Char + 'static,
 {
     psat(
-        Box::new(|i: K| Into::<char>::into(i).is_ascii_whitespace()),
+        Box::new(|i: &K| i.is_whitespace()),
         "Token is not whitespace.",
     )
 }
@@ -150,7 +155,7 @@ where
 /// A `PSat` parser that accepts any token unconditionally.
 pub fn any<K>() -> PSat<K>
 where
-    K: PartialEq + Copy + 'static,
+    K: PartialEq + 'static,
 {
-    psat(Box::new(|_| true), "")
+    psat(Box::new(|_: &_| true), "")
 }

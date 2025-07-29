@@ -109,7 +109,7 @@ fn t_ident() {
 
     match parser.parse(input) {
         Ok(PSuccess { val, rest: _ }) => {
-            assert_eq!(val, (String::from("Noah"), String::from("Cape")))
+            assert_eq!(val, ("Noah", "Cape"))
         }
         Err(_) => assert!(false),
     }

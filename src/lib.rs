@@ -4,6 +4,8 @@
 /// complex parsers from simple building blocks.
 pub mod parser;
 
+pub mod text;
+
 /// The `prelude` module re-exports commonly used items from the parser library.
 ///
 /// This module is intended for convenient import, allowing users to bring
@@ -39,4 +41,6 @@ pub mod prelude {
         ident::pident, into::pinto, just, many::pmany, not::pnot, or::por, padded::ppadded,
         pletter, pnum, pws, recursive::recursive, sat::psat, seq::pseq, utils::IntoPInput,
     };
+
+    pub use super::text;
 }

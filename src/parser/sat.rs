@@ -12,7 +12,7 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub struct PSat<K: PartialEq> {
     /// The predicate function to test a token.
-    test: Arc<dyn Fn(K) -> bool>,
+    test: Arc<dyn Fn(&K) -> bool>,
     /// A description of the expected condition for error reporting.
     condition: String,
 }
@@ -30,9 +30,9 @@ pub struct PSat<K: PartialEq> {
 pub fn psat<K, F>(test: F, condition: impl Into<String>) -> PSat<K>
 where
     K: PartialEq,
-    F: Fn(K) -> bool + 'static,
+    F: Fn(&K) -> bool + 'static,
 {
-    let func = move |input: K| test(input);
+    let func = move |input: &K| test(input);
 
     PSat {
         test: Arc::new(func),
@@ -42,7 +42,7 @@ where
 
 impl<'a, K> ParserCore<'a, K, K> for PSat<K>
 where
-    K: PartialEq + Copy + Clone + 'a,
+    K: PartialEq + Clone + 'a,
 {
     /// Attempts to parse a single token that satisfies the predicate.
     ///
@@ -61,9 +61,9 @@ where
     fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, K>, PFail<'a, K>> {
         match i.tokens.get(i.loc) {
             Some(tok) => {
-                if (self.test)(*tok) {
+                if (self.test)(tok) {
                     Ok(PSuccess {
-                        val: *tok,
+                        val: i.tokens[i.loc].clone(),
                         rest: PInput {
                             tokens: i.tokens,
                             loc: i.loc + 1,
@@ -92,4 +92,4 @@ where
     }
 }
 
-impl<'a, K> Parser<'a, K, K> for PSat<K> where K: PartialEq + Copy + 'a {}
+impl<'a, K> Parser<'a, K, K> for PSat<K> where K: PartialEq + Clone + 'a {}

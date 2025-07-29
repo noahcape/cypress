@@ -11,11 +11,8 @@ pub trait IntoToken<K> {
 
 /// Default implementation of `IntoToken` for types that are already tokens.
 ///
-/// Simply returns the value itself for types that implement `Copy`.
-impl<K> IntoToken<K> for K
-where
-    K: Copy,
-{
+/// Simply returns the value itself.
+impl<K> IntoToken<K> for K {
     fn into_token(self) -> K {
         self
     }
@@ -35,7 +32,7 @@ impl IntoToken<u8> for char {
 /// This allows convenient creation of parser input from slices or strings.
 pub trait IntoPInput<'a, T>
 where
-    T: PartialEq + Clone + Copy + 'a,
+    T: PartialEq + Clone + 'a,
 {
     /// Converts `self` into a `PInput` that the parser can consume.
     fn into_input(self) -> PInput<'a, T>;
@@ -46,7 +43,7 @@ where
 /// The input starts at location 0 with the full slice available as tokens.
 impl<'a, T> IntoPInput<'a, T> for &'a [T]
 where
-    T: PartialEq + Clone + Copy + 'a,
+    T: PartialEq + Clone + 'a,
 {
     fn into_input(self) -> PInput<'a, T> {
         PInput {

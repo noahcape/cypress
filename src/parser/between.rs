@@ -62,7 +62,7 @@ pub fn pbetween<L, P, R, A>(l: L, p: P, r: R) -> PBetween<L, P, R, A> {
 
 impl<'a, K, O, L, P, R, A> ParserCore<'a, K, O> for PBetween<L, P, R, A>
 where
-    K: PartialEq + Copy + Clone + 'a,
+    K: PartialEq + Clone + 'a,
     A: 'a,
     O: 'a,
     L: Parser<'a, K, A>,
@@ -98,7 +98,7 @@ where
 
 impl<'a, K, O, L, P, R, A> Parser<'a, K, O> for PBetween<L, P, R, A>
 where
-    K: PartialEq + Copy + Clone + 'a,
+    K: PartialEq + Clone + 'a,
     O: 'a,
     A: 'a,
     L: Parser<'a, K, A>,

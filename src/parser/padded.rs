@@ -43,7 +43,7 @@ pub fn ppadded<P, PD, A>(p: P, pad: PD) -> PPaddedBy<P, PD, A> {
 
 impl<'a, K, O, P, PD, A> ParserCore<'a, K, O> for PPaddedBy<P, PD, A>
 where
-    K: PartialEq + Copy + Clone + 'a,
+    K: PartialEq + Clone + 'a,
     O: 'a,
     A: 'a,
     P: Parser<'a, K, O>,
@@ -95,7 +95,7 @@ where
 
 impl<'a, K, O, P, PD, B> Parser<'a, K, O> for PPaddedBy<P, PD, B>
 where
-    K: PartialEq + Copy + 'a,
+    K: PartialEq + Clone + 'a,
     O: 'a,
     B: 'a,
     P: Parser<'a, K, O>,

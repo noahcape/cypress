@@ -47,7 +47,7 @@ where
 
 impl<'a, P, K, O1, O2> ParserCore<'a, K, O2> for PBind<P, O1, O2>
 where
-    K: PartialEq + Copy + Clone + 'a,
+    K: PartialEq + Clone + 'a,
     O1: 'a,
     P: Parser<'a, K, O1>,
 {
@@ -72,7 +72,7 @@ where
 
 impl<'a, P, K, O1, O2> Parser<'a, K, O2> for PBind<P, O1, O2>
 where
-    K: PartialEq + Copy + Clone + 'a,
+    K: PartialEq + Clone + 'a,
     O1: 'a,
     O2: 'a,
     P: Parser<'a, K, O1>,

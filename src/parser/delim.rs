@@ -44,7 +44,7 @@ pub fn pdelim<P1, P2, A>(p: P1, delim: P2) -> PDelim<P1, P2, A> {
 
 impl<'a, K, O, P, PDelim_, B> ParserCore<'a, K, Vec<O>> for PDelim<P, PDelim_, B>
 where
-    K: PartialEq + Copy + Clone + 'a,
+    K: PartialEq + Clone + 'a,
     O: 'a,
     B: 'a,
     P: Parser<'a, K, O>,
@@ -108,7 +108,7 @@ where
 
 impl<'a, K, O, P, PDelim_, B> Parser<'a, K, Vec<O>> for PDelim<P, PDelim_, B>
 where
-    K: PartialEq + Copy + Clone + 'a,
+    K: PartialEq + Clone + 'a,
     O: 'a,
     B: 'a,
     P: Parser<'a, K, O>,
