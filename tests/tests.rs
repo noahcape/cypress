@@ -1,4 +1,4 @@
-use hemlock::prelude::*;
+use cypress::prelude::*;
 
 #[test]
 fn t_just() {

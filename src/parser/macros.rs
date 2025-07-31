@@ -6,7 +6,7 @@
 /// # Examples
 ///
 /// ```
-/// use hemlock::prelude::*;
+/// use cypress::prelude::*;
 /// let input = "B".into_input();
 /// let parser1 = just('A').or(just('B'));
 /// let parser2 = choice!(just('A'), just('B'));
@@ -47,7 +47,7 @@ macro_rules! choice {
 /// # Examples
 ///
 /// ```
-/// use hemlock::prelude::*;
+/// use cypress::prelude::*;
 /// let input = "Luke".into_input();
 ///
 /// #[derive(Clone, PartialEq, Debug)]
@@ -132,7 +132,7 @@ macro_rules! select {
 /// # Examples
 ///
 /// ```
-/// use hemlock::prelude::*;
+/// use cypress::prelude::*;
 ///
 /// let input = "1+2".into_input();
 ///
@@ -177,6 +177,30 @@ macro_rules! sequence {
 
 }
 
+/// Macro for wraping expressions or literals, typically for inside other macros.
+///
+/// This macro will be called upon automatically from macros like `sequence!` and `choice!`
+/// but can also be used on its own.
+///
+/// # Examples
+///
+/// ```
+/// use cypress::prelude::*;
+///
+/// // the following to parsers are equivalent
+/// let p1 = choice!(wrap!('A'), wrap!('B'), wrap!('C'));
+/// let p2 = choice!(just('A'), just('B'), just('C'));
+///
+/// match p1.parse("B".into_input()) {
+///     Ok(PSuccess { val, rest: _ }) => assert_eq!(val, b'B'),
+///     Err(_) => assert!(false),
+/// };
+///
+/// match p2.parse("B".into_input()) {
+///     Ok(PSuccess { val, rest: _ }) => assert_eq!(val, b'B'),
+///     Err(_) => assert!(false),
+/// };
+/// ```
 #[macro_export]
 macro_rules! wrap {
     (($e:expr)) => {

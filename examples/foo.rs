@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt::Display};
 
-use hemlock::prelude::*;
+use cypress::prelude::*;
 
 /// foo is a play language with assignment and printing.
 /// There are two types of expressions `print <expr>` and `<ident> = <expr>`.
@@ -11,7 +11,7 @@ use hemlock::prelude::*;
 /// and executed linearly in sequence.
 ///
 /// This language cannot do much but it can help give a hint of how to write a
-/// parser using hemlock.
+/// parser using cypress.
 
 #[derive(PartialEq, Clone, Debug, Eq, Hash)]
 enum Expr {

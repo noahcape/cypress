@@ -15,6 +15,7 @@ pub mod prelude {
     pub use super::choice;
     pub use super::select;
     pub use super::sequence;
+    pub use super::wrap;
 
     pub use super::text;
 

@@ -1,4 +1,4 @@
-# Hemlock
+# Cypress
 
 A parser library inspired by a scaled down derivative of the FParsec combinator library in F#.
 
@@ -11,6 +11,8 @@ The goal of this project was to develop a simple parser combinator library with 
 I have populated `/examples` with a parser of certain simple languages, along with an evaluator for a select few, to show using this library by example. I hope to populate one or two more sophisticated implementations soon. Below is a simple parser for [BrainFuck](https://gist.github.com/roachhd/dce54bec8ba55fb17d3a) which seems to be the go to simple language parser that libraries refer to, so here it is.
 
 ```rust,ignore
+use cypress::prelude::*;
+
 #[derive(Debug, Clone, PartialEq)]
 enum Instruction {
     Left,
@@ -57,4 +59,4 @@ This is my first published project so if you have thoughts please feel free to o
 
 ## License
 
-Hemlock is licensed under the BSD 3 license (see `LICENSE` in the main repository).
+cypress is licensed under the BSD 3 license (see `LICENSE` in the main repository).
