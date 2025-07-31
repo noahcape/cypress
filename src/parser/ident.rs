@@ -52,8 +52,8 @@ where
 
         if i.tokens.len() < i.loc + ident_len {
             return Err(PFail {
-                error: format!("Not enough tokens to match {}", self.ident),
-                span: (i.loc, i.tokens.len()),
+                error: vec![format!("Not enough tokens to match {}", self.ident)],
+                span: vec![(i.loc, i.tokens.len())],
                 rest: PInput {
                     tokens: i.tokens,
                     loc: i.loc,
@@ -69,9 +69,8 @@ where
         {
             // Failed parse: return error message, span, and updated input location
             Err(PFail {
-                error: format!("Expected {}", self.ident),
-                // i.tokens[i.loc..i.loc + ident_len]
-                span: (i.loc, i.loc + ident_len),
+                error: vec![format!("Expected {}", self.ident)],
+                span: vec![(i.loc, i.loc + ident_len)],
                 rest: PInput {
                     tokens: i.tokens,
                     loc: i.loc + ident_len,
@@ -87,11 +86,6 @@ where
                 },
             })
         }
-        // let ident_bytes = self.ident.as_bytes();
-
-        // if ident_bytes.eq(potential_match.as_slice()) {
-        // } else {
-        // }
     }
 }
 

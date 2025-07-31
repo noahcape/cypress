@@ -62,6 +62,9 @@ pub mod debug;
 /// Parsers that combine multiple conditions (AND combinators).
 pub mod and;
 
+#[macro_use]
+pub mod macros;
+
 /// Creates a parser that matches exactly one token equal to `t`.
 ///
 /// # Type Parameters

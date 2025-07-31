@@ -73,6 +73,8 @@ where
     ///
     /// Only the result of `p` is returned. If any parser fails, the whole parse fails.
     fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O>, PFail<'a, K>> {
+        let start_loc = i.loc;
+
         // Apply the left parser (discard its result)
         let PSuccess {
             val: _,
@@ -86,13 +88,21 @@ where
         } = self.p.parse(after_l)?;
 
         // Apply the right parser (discard its result)
-        let PSuccess {
-            val: _,
-            rest: after_r,
-        } = self.r.parse(after_main)?;
-
-        // Return the result of the main parser
-        Ok(PSuccess { val, rest: after_r })
+        match self.r.parse(after_main) {
+            Ok(PSuccess {
+                val: _,
+                rest: after_r,
+            }) => Ok(PSuccess { val, rest: after_r }),
+            Err(PFail {
+                mut error,
+                mut span,
+                rest,
+            }) => {
+                error.push("Missing final token for parsing between.".to_string());
+                span.push((start_loc, rest.loc));
+                Err(PFail { error, span, rest })
+            }
+        }
     }
 }
 

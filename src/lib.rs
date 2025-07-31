@@ -6,6 +6,8 @@ pub mod parser;
 
 pub mod text;
 
+pub mod error;
+
 /// The `prelude` module re-exports commonly used items from the parser library.
 ///
 /// This module is intended for convenient import, allowing users to bring
@@ -35,6 +37,8 @@ pub mod text;
 ///   - `IntoPInput` (input conversion trait)
 pub mod prelude {
     pub use super::choice;
+    pub use super::select;
+    pub use super::sequence;
 
     pub use super::parser::{
         and::pand, any, between::pbetween, bind::pbind, core::*, debug::debug, delim::pdelim,

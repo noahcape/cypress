@@ -52,7 +52,10 @@ where
             Err(PFail { error, span, rest }) => {
                 println!(
                     "Failed {}: with msg: {} at position span ({}, {})",
-                    self.label, error, span.0, span.1
+                    self.label,
+                    error.last().unwrap(),
+                    span.last().unwrap().0,
+                    span.last().unwrap().1
                 );
                 Err(PFail { error, span, rest })
             }

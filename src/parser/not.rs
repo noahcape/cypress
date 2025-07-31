@@ -58,8 +58,8 @@ where
         let start = i.loc;
         match self.p.parse(i) {
             Ok(PSuccess { val: _, rest }) => Err(PFail {
-                error: "Was what was not expected.".to_string(),
-                span: (start, rest.loc),
+                error: vec!["Was what was not expected.".to_string()],
+                span: vec![(start, rest.loc)],
                 rest,
             }),
             Err(PFail {

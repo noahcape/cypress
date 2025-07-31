@@ -71,8 +71,8 @@ where
                     })
                 } else {
                     Err(PFail {
-                        error: self.condition.clone(),
-                        span: (i.loc, i.loc + 1),
+                        error: vec![self.condition.clone()],
+                        span: vec![(i.loc, i.loc + 1)],
                         rest: PInput {
                             tokens: i.tokens,
                             loc: i.loc + 1,
@@ -81,8 +81,8 @@ where
                 }
             }
             None => Err(PFail {
-                error: "No token to read".to_string(),
-                span: (i.loc, i.loc),
+                error: vec!["No token to read".to_string()],
+                span: vec![(i.loc, i.loc)],
                 rest: PInput {
                     tokens: i.tokens,
                     loc: i.loc + 1,

@@ -162,3 +162,42 @@ fn t_recursive() {
         Err(_) => assert!(false),
     }
 }
+
+#[test]
+fn t_select() {
+    #[derive(Debug, PartialEq)]
+    enum Expr {
+        Left,
+        Right,
+    }
+    let input = "<><".into_input();
+
+    let parser = select! {
+        '<' => Expr::Left,
+        (just('>')) => Expr::Right,
+    }
+    .many();
+
+    match parser.parse(input) {
+        Ok(PSuccess { val, rest: _ }) => assert_eq!(val, vec![Expr::Left, Expr::Right, Expr::Left]),
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn t_parser_macro() {
+    let input = "A+B";
+
+    #[derive(Debug, PartialEq)]
+    enum Expr {
+        A,
+        B,
+    }
+
+    let parser = sequence!((just('A')) > '+' > 'B' => |_| (Expr::A, Expr::B));
+
+    match parser.parse(input.into_input()) {
+        Ok(PSuccess { val, rest: _ }) => assert_eq!(val, (Expr::A, Expr::B)),
+        Err(_) => assert!(false),
+    }
+}

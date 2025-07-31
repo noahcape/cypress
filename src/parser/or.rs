@@ -31,35 +31,6 @@ pub fn por<P1, P2>(p1: P1, p2: P2) -> POr<P1, P2> {
     POr { p1, p2 }
 }
 
-/// A convenient macro to create a choice parser from two or more parsers.
-///
-/// This macro recursively combines multiple parsers into nested `por` combinators,
-/// allowing you to write `choice!(p1, p2, p3, ...)` instead of nested calls.
-///
-/// # Examples
-///
-/// ```
-/// use parsec::prelude::*;
-/// let input = b"B".into_input();
-/// let parser = just('A').or(just('B'));
-///
-/// match parser.parse(input) {
-///     Ok(PSuccess { val, rest: _ }) => assert_eq!(val, b'B'),
-///     Err(_) => assert!(false),
-/// }
-/// ```
-///
-/// This is equivalent to `por(p1, por(p2, p3))`.
-#[macro_export]
-macro_rules! choice {
-    ($p:expr, $q:expr $(,)?) => {
-        $crate::parser::or::por($p, $q)
-    };
-    ($p:expr, $( $rest:expr ),* $(,)?) => {
-        $crate::parser::or::por($p, $crate::choice!($($rest),*))
-    };
-}
-
 impl<'a, K, O, P1, P2> ParserCore<'a, K, O> for POr<P1, P2>
 where
     K: PartialEq + Clone + 'a,

@@ -142,6 +142,6 @@ print z";
             error,
             span: _,
             rest: _,
-        }) => println!("{error}"),
+        }) => println!("{:?}", error),
     }
 }

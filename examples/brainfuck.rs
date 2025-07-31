@@ -25,20 +25,20 @@ fn main() {
     let parser = recursive(|expr| {
         Box::new(
             choice!(
-                just('<').into_(Instruction::Left).debug("< parser"),
-                just('>').into_(Instruction::Right).debug("> parser"),
-                just('+').into_(Instruction::Increment).debug("+ parser"),
-                just('-').into_(Instruction::Decrement).debug("- parser"),
-                just(',').into_(Instruction::Read).debug(", parser"),
-                just('.').into_(Instruction::Write).debug(". parser"),
+                just('<').into_(Instruction::Left),
+                just('>').into_(Instruction::Right),
+                just('+').into_(Instruction::Increment),
+                just('-').into_(Instruction::Decrement),
+                just(',').into_(Instruction::Read),
+                just('.').into_(Instruction::Write),
                 expr.between(just('['), just(']'))
                     .map(|expr| Instruction::Loop(expr))
-                    .debug("[ .. ] parser"),
             )
-            .many()
-            .debug("Recursive bf parser"),
+            .many(),
         )
-    });
+    })
+    // Current way to go until the end of file
+    .then(any().not());
 
     let input = b"+++++[>>+<<-]".into_input();
 
@@ -60,9 +60,16 @@ fn main() {
 
     match parser.parse(input) {
         Ok(PSuccess {
-            val: actual_bf,
+            val: (actual_bf, _),
             rest: _,
         }) => assert_eq!(actual_bf, expected_bf),
-        Err(_) => assert!(false),
+        Err(PFail {
+            error,
+            span: _,
+            rest: _,
+        }) => {
+            println!("{:?}", error);
+            assert!(false)
+        }
     }
 }

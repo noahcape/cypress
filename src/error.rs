@@ -1,5 +1,5 @@
-use crate::parser::utils::IntoToken;
 use crate::prelude::PInput;
+use crate::{parser::utils::IntoToken, text::Char};
 use std::fmt::Display;
 
 use crate::parser::core::Span;
@@ -26,6 +26,26 @@ where
     }
 }
 
+pub enum Style<K>
+where
+    K: Display,
+{
+    Bold(K),
+    Plain(K),
+}
+
+impl<K> Display for Style<K>
+where
+    K: Display,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Style::Bold(i) => write!(f, "\x1b[1m{i}\x1b[0m"),
+            Style::Plain(i) => write!(f, "{i}"),
+        }
+    }
+}
+
 pub enum Color<K>
 where
     K: Display,
@@ -41,26 +61,25 @@ where
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Color::Red(str) => write!(f, "\x1b[31m{str}\x1b[0m"),
-            Color::Yellow(str) => write!(f, "\x1b[33m{str}\x1b[0m"),
-            Color::Plain(str) => write!(f, "{str}"),
+            Color::Red(i) => write!(f, "\x1b[31m{i}\x1b[0m"),
+            Color::Yellow(i) => write!(f, "\x1b[33m{i}\x1b[0m"),
+            Color::Plain(i) => write!(f, "{i}"),
         }
     }
 }
 
-pub enum ErrorKind<T, K>
+pub enum ErrorKind<D>
 where
-    T: IntoToken<K>,
+    D: Display,
 {
     Custom(String),
     EOF,
-    Unexpected { expected: Vec<T>, found: T },
-    PhantomMarker(K),
+    Unexpected { expected: Vec<D>, found: D },
 }
 
-impl<T, K> Display for ErrorKind<T, K>
+impl<D> Display for ErrorKind<D>
 where
-    T: IntoToken<K> + Clone + Display,
+    D: Display,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -68,65 +87,104 @@ where
             ErrorKind::Unexpected { expected, found } => {
                 let expected = expected
                     .iter()
-                    .map(|exp| format!("{}", exp.into_token()))
+                    .map(|exp| format!("{exp}"))
                     .collect::<String>();
                 write!(
                     f,
-                    "\x1b[1mExpected:\x1b[0m {}\n\x1b[1mFound:\x1b[0m {}",
+                    "{} {}\n{} {}",
+                    Style::Bold("Expected:"),
+                    Style::Bold("Found:"),
                     Color::Yellow(expected),
-                    Color::Red(found.into_token())
+                    Color::Red(found)
                 )
             }
             ErrorKind::EOF => write!(f, "{}", Color::Red("Reached end of file")),
-            ErrorKind::PhantomMarker(_) => unimplemented!(),
         }
     }
 }
 
-pub struct Error<'a, K, T>
+pub struct Error<'a, K, D>
 where
     K: PartialEq + Clone + 'a,
-    T: IntoToken<K>,
+    D: Display,
 {
-    pub kind: ErrorKind<T, K>,
-    pub span: Option<Span>,
-    pub state: Option<PInput<'a, K>>,
+    pub kind: ErrorKind<D>,
+    pub span: Span,
+    pub state: PInput<'a, K>,
 }
 
-impl<'a, T, K> Error<'a, K, T>
+impl<'a, K, D> Error<'a, K, D>
 where
-    K: PartialEq + Clone + 'a,
-    T: IntoToken<K>,
+    K: PartialEq + Clone + Char + 'a,
+    D: Display,
 {
-    pub fn stateless(kind: ErrorKind<T, K>) -> Self {
-        Error {
-            kind,
-            span: None,
-            state: None,
-        }
+    pub fn new(kind: ErrorKind<D>, span: Span, state: PInput<'a, K>) -> Self {
+        Error { kind, span, state }
     }
 
-    pub fn set_state(self, span: Span, state: PInput<'a, K>) -> Self {
-        self.set_span(span).set_input(state)
-    }
+    pub fn fmt_state(&self) -> String {
+        let ((line_start, line_stop), _) = self.state.span_snapshot(self.span);
 
-    fn set_span(mut self, span: Span) -> Self {
-        self.span = Some(span);
-        self
-    }
-
-    fn set_input(mut self, state: PInput<'a, K>) -> Self {
-        self.state = Some(state);
-        self
+        format!(
+            "{} {}-{}\n\nSource:\n{}",
+            Style::Bold(Color::Red("Error at:")),
+            Style::Bold(line_start),
+            Style::Bold(line_stop),
+            self.state.fmt_tokens()
+        )
     }
 }
 
 impl<'a, T, K> Display for Error<'a, K, T>
 where
-    K: PartialEq + Clone + Display + 'a,
+    K: PartialEq + Clone + Display + Char + 'a,
     T: IntoToken<K> + Display + Clone,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.kind)
+        write!(f, "{}\n\n{}", self.fmt_state(), self.kind)
+    }
+}
+
+impl<'a, T> PInput<'a, T>
+where
+    T: PartialEq + Clone + Char + 'a,
+{
+    fn span_snapshot(&self, span: Span) -> (Span, usize) {
+        let (expected_start, expected_stop) = span;
+
+        let mut start = 0;
+        let mut stop = 0;
+        let mut tick_offset = 0;
+        let mut offset = 0;
+        let mut line_num = 0;
+
+        for (i, tok) in self.tokens.iter().enumerate() {
+            if tok.is_newline() {
+                line_num += 1;
+                tick_offset = i;
+            }
+
+            if i == expected_start {
+                start = line_num;
+                offset = tick_offset;
+            }
+
+            if i == expected_stop {
+                stop = line_num;
+                break;
+            }
+        }
+
+        ((start, stop), offset)
+    }
+
+    fn fmt_tokens(&self) -> String {
+        String::from_utf8(
+            self.tokens
+                .iter()
+                .map(|tok| tok.to_ascii().unwrap())
+                .collect(),
+        )
+        .unwrap()
     }
 }

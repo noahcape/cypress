@@ -2,6 +2,9 @@ use crate::prelude::{
     debug, pand, pbetween, pbind, pdelim, pinto, pmany, pnot, por, ppadded, pseq,
 };
 
+// temp: switch to Range<usize> at some point
+pub type Span = (usize, usize);
+
 /// Represents a parsing input state, including a slice of tokens and a position index.
 ///
 /// This is the fundamental data structure passed to all parsers. It abstracts over token streams,
@@ -51,10 +54,10 @@ where
     T: PartialEq + Clone,
 {
     /// Human-readable error message
-    pub error: String,
+    pub error: Vec<String>,
 
     /// Span (start and end indices) where the failure occurred
-    pub span: (usize, usize),
+    pub span: Vec<Span>,
 
     /// The input state at the point of failure
     pub rest: PInput<'a, T>,
