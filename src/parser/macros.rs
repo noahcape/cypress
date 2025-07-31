@@ -6,7 +6,7 @@
 /// # Examples
 ///
 /// ```
-/// use parsec::prelude::*;
+/// use hemlock::prelude::*;
 /// let input = "B".into_input();
 /// let parser1 = just('A').or(just('B'));
 /// let parser2 = choice!(just('A'), just('B'));
@@ -47,7 +47,7 @@ macro_rules! choice {
 /// # Examples
 ///
 /// ```
-/// use parsec::prelude::*;
+/// use hemlock::prelude::*;
 /// let input = "Luke".into_input();
 ///
 /// #[derive(Clone, PartialEq, Debug)]
@@ -132,7 +132,7 @@ macro_rules! select {
 /// # Examples
 ///
 /// ```
-/// use parsec::prelude::*;
+/// use hemlock::prelude::*;
 ///
 /// let input = "1+2".into_input();
 ///
@@ -187,5 +187,7 @@ macro_rules! wrap {
         $parser
     };
 
-    ($ch:tt) => {{ $crate::parser::just($ch) }};
+    ($ch:tt) => {
+        $crate::parser::just($ch)
+    };
 }

@@ -28,7 +28,7 @@ pub struct PBind<P, O1, O2> {
 ///
 /// # Example
 /// ```rust
-/// use parsec::prelude::*;
+/// use hemlock::prelude::*;
 ///
 /// let input = b"A".into_input();
 /// let parser = just('A').map(|_| 1);

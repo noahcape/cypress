@@ -1,4 +1,4 @@
-use parsec::prelude::*;
+use hemlock::prelude::*;
 
 #[test]
 fn t_just() {

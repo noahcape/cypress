@@ -1,6 +1,17 @@
 use std::{collections::HashMap, fmt::Display};
 
-use parsec::prelude::*;
+use hemlock::prelude::*;
+
+/// foo is a play language with assignment and printing.
+/// There are two types of expressions `print <expr>` and `<ident> = <expr>`.
+/// Each expression returns a value, `print` returns the value that is printed
+/// and assignment returns the value that was assigned. Thus a valid sentence may
+/// be `print x = y = 4` how this would expected is: first y gets 4, the x gets 4
+/// then the program finishes with printing 4. Lines are delimitted by a newline
+/// and executed linearly in sequence.
+///
+/// This language cannot do much but it can help give a hint of how to write a
+/// parser using hemlock.
 
 #[derive(PartialEq, Clone, Debug, Eq, Hash)]
 enum Expr {
@@ -55,13 +66,19 @@ fn ident<'a>() -> impl Parser<'a, u8, String> {
     ident.map(|val| String::from_utf8(val).unwrap())
 }
 
+/// Parsing a variable assignment, note the use of `sequence!`
+/// a macro to support applying multiple parsers in sequence. See `print`
+/// below for an example of doing a similar parse without this macro.
 fn var_assignment<'a>(expr: impl Parser<'a, u8, Expr>) -> impl Parser<'a, u8, Expr> {
-    ident()
-        .then(just('=').padded_by(pws()))
-        .then(expr)
-        .map(|((name, _), val)| Expr::Assignment(name, Box::new(val)))
+    sequence!(
+        (ident())                       >
+        (just('=').padded_by(pws()))    >
+        expr                            =>
+        |(name, (_, val))| Expr::Assignment(name, Box::new(val))
+    )
 }
 
+/// An example of applying two parsers in sequence without `sequence!` macro.
 fn print<'a>(expr: impl Parser<'a, u8, Expr>) -> impl Parser<'a, u8, Expr> {
     let print_ident = pident("print");
 

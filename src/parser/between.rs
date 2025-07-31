@@ -41,7 +41,7 @@ pub struct PBetween<L, P, R, A> {
 ///
 /// # Example
 /// ```rust
-/// use parsec::prelude::*;
+/// use hemlock::prelude::*;
 ///
 /// let input = "[A]".as_bytes().into_input();
 /// let parser = pbetween(just('['), just('A'), just(']'));

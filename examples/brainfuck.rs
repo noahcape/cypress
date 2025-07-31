@@ -1,4 +1,4 @@
-use parsec::prelude::*;
+use hemlock::prelude::*;
 
 // See: https://gist.github.com/roachhd/dce54bec8ba55fb17d3a for an overview of BrainFuck
 // > = increases memory pointer, or moves the pointer to the right 1 block.
@@ -25,12 +25,14 @@ fn main() {
     let parser = recursive(|expr| {
         Box::new(
             choice!(
-                just('<').into_(Instruction::Left),
-                just('>').into_(Instruction::Right),
-                just('+').into_(Instruction::Increment),
-                just('-').into_(Instruction::Decrement),
-                just(',').into_(Instruction::Read),
-                just('.').into_(Instruction::Write),
+                select! {
+                    '<' => Instruction::Left,
+                    '>' => Instruction::Right,
+                    '+' => Instruction::Increment,
+                    '-' => Instruction::Decrement,
+                    ',' => Instruction::Read,
+                    '.' => Instruction::Write,
+                },
                 expr.between(just('['), just(']'))
                     .map(|expr| Instruction::Loop(expr))
             )
@@ -38,7 +40,8 @@ fn main() {
         )
     })
     // Current way to go until the end of file
-    .then(any().not());
+    .then(any().not())
+    .map(|(bf, _)| bf);
 
     let input = b"+++++[>>+<<-]".into_input();
 
@@ -60,9 +63,12 @@ fn main() {
 
     match parser.parse(input) {
         Ok(PSuccess {
-            val: (actual_bf, _),
+            val: actual_bf,
             rest: _,
-        }) => assert_eq!(actual_bf, expected_bf),
+        }) => {
+            println!("{:?}", actual_bf);
+            assert_eq!(actual_bf, expected_bf)
+        }
         Err(PFail {
             error,
             span: _,

@@ -52,7 +52,7 @@ impl<'a, K, O> Clone for PRecursive<'a, K, O> {
 /// # Example
 ///
 /// ```rust
-/// use parsec::prelude::*;
+/// use hemlock::prelude::*;
 /// let input = b"(1+(2+3))".into_input();
 ///
 /// #[derive(Debug, PartialEq)]

@@ -28,7 +28,7 @@ pub struct PAnd<P1, P2, A> {
 ///
 /// # Example
 /// ```rust
-/// use parsec::prelude::*;
+/// use hemlock::prelude::*;
 /// let input = "\"This is a string\"".into_input();
 /// let parser = just('\"')
 ///         .then(any().and(just('\"').not()).many())
