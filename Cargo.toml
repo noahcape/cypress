@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2024"
 description = "Build simple yet expressive parsers"
 readme = "README.md"
-license = "BSD-3-Clause"
 license-file = "LICENSE"
 repository = "https://github.com/noahcape/cypress" 
 keywords = ["parser", "combinator"]
