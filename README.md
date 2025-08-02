@@ -13,7 +13,7 @@ The goal of this project was to develop a simple parser combinator library with 
 
 I have populated `/examples` with a parser of certain simple languages, along with an evaluator for a select few, to show using this library by example. I hope to populate one or two more sophisticated implementations soon. Below is a simple parser for [BrainFuck](https://gist.github.com/roachhd/dce54bec8ba55fb17d3a) which seems to be the go to simple language parser that libraries refer to, so here it is.
 
-```rust,ignore
+```rust
 use cypress::prelude::*;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -45,9 +45,7 @@ fn bf_parser<'a>() -> impl Parser<'a, u8, Vec<Instruction>> {
             .many(),
         )
     })
-    // Current way to go until the end of file
-    .then(any().not())
-    .map(|(bf, _)| bf);
+    .until_end();
 }
 
 let input = b"+++++[>>+<<-]".into_input();

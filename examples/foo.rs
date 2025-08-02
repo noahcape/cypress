@@ -141,7 +141,7 @@ fn eval<'a>(expr: Expr, var_map: &mut HashMap<String, Expr>) -> Result<Expr, Str
 
 fn main() {
     let input = b"y = print z = 4
-x = print me y
+x = print y
 y = 10
 print y
 print x
