@@ -16,11 +16,17 @@ pub mod padded;
 /// succeed if the inner parser fails at current input.
 pub mod not;
 
-/// Parsers handling delimiters, useful for parsing separated lists or tokens.
+/// Parsers handling delimiters, useful for parsing zero or more separated lists or tokens.
 pub mod delim;
+
+/// Parsers handling delimiters, useful for parsing one or more separated lists or tokens.
+pub mod delim1;
 
 /// Parsers for matching zero or more repetitions of a pattern.
 pub mod many;
+
+/// Parsers for matching one or more repetitions of a pattern.
+pub mod many1;
 
 /// Parsers allowing binding transformations of output.
 pub mod bind;
@@ -51,7 +57,7 @@ pub mod into;
 pub mod utils;
 use utils::*;
 
-use crate::text::Char;
+use crate::{error::TokenPattern, text::Char};
 
 /// Parsers specifically for identifiers.
 pub mod ident;
@@ -61,6 +67,9 @@ pub mod debug;
 
 /// Parsers that combine multiple conditions (AND combinators).
 pub mod and;
+
+/// Parser that asserts if an inner parser has consumed all input.
+pub mod until_end;
 
 #[macro_use]
 pub mod macros;
@@ -75,15 +84,16 @@ pub mod macros;
 /// # Returns
 ///
 /// A `PSat` parser that accepts only the token `t`.
-pub fn just<K, T>(t: T) -> PSat<K>
+pub fn just<'a, K, T>(t: T) -> PSat<'a, K>
 where
     K: PartialEq + Display + Clone + 'static,
-    T: IntoToken<K>,
+    T: IntoToken<K> + Clone,
 {
-    let token: K = t.into_token();
+    let token: K = t.clone().into_token();
+    let token_c: K = t.into_token();
     psat(
         Box::new(move |i: &K| i.eq(&token)),
-        "Token at position doesn't match".to_string(),
+        vec![TokenPattern::Token(std::borrow::Cow::Owned(token_c))],
     )
 }
 
@@ -96,13 +106,15 @@ where
 /// # Returns
 ///
 /// A `PSat` parser that accepts tokens representing ASCII digits (0-9).
-pub fn pnum<K>() -> PSat<K>
+pub fn pnum<'a, K>() -> PSat<'a, K>
 where
-    K: PartialEq + Display + Char + 'static,
+    K: PartialEq + Display + Char + Clone + 'static,
 {
     psat(
         Box::new(move |i: &K| i.is_digit(10)),
-        "Token is not a number",
+        vec![TokenPattern::String(std::borrow::Cow::Borrowed(
+            "Digit 0..9",
+        ))],
     )
 }
 
@@ -115,16 +127,18 @@ where
 /// # Returns
 ///
 /// A `PSat` parser that accepts tokens representing ASCII letters (A-Z, a-z).
-pub fn pletter<K>() -> PSat<K>
+pub fn pletter<'a, K>() -> PSat<'a, K>
 where
-    K: PartialEq + Char + 'static,
+    K: PartialEq + Char + Clone + 'static,
 {
     psat(
         Box::new(|i: &K| match i.to_ascii() {
             Some(tok) => tok.is_ascii_alphabetic(),
             None => false,
         }),
-        "Token is not a letter.",
+        vec![TokenPattern::String(std::borrow::Cow::Borrowed(
+            "Letter a..z",
+        ))],
     )
 }
 
@@ -137,13 +151,15 @@ where
 /// # Returns
 ///
 /// A `PSat` parser that accepts tokens representing ASCII whitespace.
-pub fn pws<K>() -> PSat<K>
+pub fn pws<'a, K>() -> PSat<'a, K>
 where
-    K: PartialEq + Char + 'static,
+    K: PartialEq + Char + Clone + 'static,
 {
     psat(
         Box::new(|i: &K| i.is_whitespace()),
-        "Token is not whitespace.",
+        vec![TokenPattern::String(std::borrow::Cow::Borrowed(
+            "Whitespace token",
+        ))],
     )
 }
 
@@ -156,9 +172,12 @@ where
 /// # Returns
 ///
 /// A `PSat` parser that accepts any token unconditionally.
-pub fn any<K>() -> PSat<K>
+pub fn any<'a, K>() -> PSat<'a, K>
 where
-    K: PartialEq + 'static,
+    K: PartialEq + Clone + 'static,
 {
-    psat(Box::new(|_: &_| true), "")
+    psat(
+        Box::new(|_: &_| true),
+        vec![TokenPattern::String(std::borrow::Cow::Borrowed("Anything"))],
+    )
 }

@@ -1,4 +1,4 @@
-use crate::parser::*;
+use crate::{error::Error, parser::*};
 use std::marker::PhantomData;
 
 /// A parser combinator that runs an inner parser `p` but replaces its output
@@ -63,8 +63,8 @@ where
     /// # Returns
     ///
     /// * `Ok(PSuccess)` containing the fixed output `out` and the remaining input if parsing succeeds.
-    /// * `Err(PFail)` if the inner parser `p` fails.
-    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, Out>, PFail<'a, K>> {
+    /// * `Err(Error)` if the inner parser `p` fails.
+    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, Out>, Error<'a, K>> {
         let PSuccess { val: _, rest } = self.p.parse(i)?;
 
         Ok(PSuccess {

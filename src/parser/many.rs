@@ -1,4 +1,4 @@
-use crate::parser::*;
+use crate::{error::Error, parser::*};
 
 /// A parser combinator that applies the inner parser `p` zero or more times,
 /// collecting all successful parse results into a vector.
@@ -15,6 +15,7 @@ pub struct PMany<P> {
 }
 
 /// Creates a new `PMany` parser combinator that applies parser `p` zero or more times.
+/// Use [`crate::parser::many1::pmany1`] to parser one or more times.
 ///
 /// # Arguments
 ///
@@ -47,7 +48,7 @@ where
     ///
     /// Always returns `Ok(PSuccess)` with a vector of all parsed values (which
     /// may be empty) and the remaining input.
-    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, Vec<O>>, PFail<'a, K>> {
+    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, Vec<O>>, Error<'a, K>> {
         let mut vals: Vec<O> = vec![];
         let mut input = i;
 

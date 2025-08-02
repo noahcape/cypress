@@ -201,3 +201,15 @@ fn t_parser_macro() {
         Err(_) => assert!(false),
     }
 }
+
+#[test]
+fn t_puntil_end() {
+    let input = "<><>>>-<<";
+
+    let parser = choice!(just('<'), just('>')).many().until_end();
+
+    match parser.parse(input.into_input()) {
+        Ok(_) => assert!(false),
+        Err(_) => assert!(true),
+    }
+}

@@ -1,4 +1,7 @@
-use crate::parser::*;
+use crate::{
+    error::{Error, ErrorDisplay},
+    parser::*,
+};
 
 /// A parser wrapper that adds debug printing to another parser.
 ///
@@ -29,7 +32,7 @@ pub fn debug<P>(inner: P, label: &'static str) -> PDebug<P> {
 
 impl<'a, K, O, P> ParserCore<'a, K, O> for PDebug<P>
 where
-    K: PartialEq + Clone + 'a,
+    K: PartialEq + Clone + ErrorDisplay + 'a,
     O: 'a,
     P: Parser<'a, K, O>,
 {
@@ -42,22 +45,22 @@ where
     /// # Returns
     ///
     /// * `Ok(PSuccess)` if the inner parser succeeds, printing a success message with the label.
-    /// * `Err(PFail)` if the inner parser fails, printing an error message with the label, error, and span.
-    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O>, PFail<'a, K>> {
+    /// * `Err(Error)` if the inner parser fails, printing an error message with the label, error, and span.
+    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O>, Error<'a, K>> {
         match self.inner.parse(i) {
             Ok(psuccess) => {
                 println!("Successfully parsed with {}", self.label);
                 Ok(psuccess)
             }
-            Err(PFail { error, span, rest }) => {
+            Err(Error { kind, span, state }) => {
                 println!(
-                    "Failed {}: with msg: {} at position span ({}, {})",
+                    "Failed {} with msg: {} at position span ({}, {})",
                     self.label,
-                    error.last().unwrap(),
-                    span.last().unwrap().0,
-                    span.last().unwrap().1
+                    kind.last().unwrap(),
+                    span.0,
+                    span.1
                 );
-                Err(PFail { error, span, rest })
+                Err(Error { kind, span, state })
             }
         }
     }
@@ -65,7 +68,7 @@ where
 
 impl<'a, K, O, Inner> Parser<'a, K, O> for PDebug<Inner>
 where
-    K: PartialEq + Clone + 'a,
+    K: PartialEq + Clone + ErrorDisplay + 'a,
     O: 'a,
     Inner: Parser<'a, K, O>,
 {

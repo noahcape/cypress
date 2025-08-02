@@ -1,4 +1,7 @@
-use crate::parser::*;
+use crate::{
+    error::{Error, ErrorKind, TokenPattern},
+    parser::*,
+};
 
 /// A parser that matches a fixed identifier string in the input.
 ///
@@ -29,7 +32,7 @@ pub fn pident<'a>(ident: &'a str) -> PIdent<'a> {
 
 impl<'a, K> ParserCore<'a, K, &'a str> for PIdent<'a>
 where
-    K: PartialEq + Clone + PartialEq<u8> + 'a,
+    K: PartialEq + Clone + PartialEq<u8> + Char + 'a,
 {
     /// Attempts to parse the identifier string from the input.
     ///
@@ -45,16 +48,19 @@ where
     ///
     /// * `Ok(PSuccess)` with the matched identifier string and updated input location
     ///   if the input matches the identifier exactly.
-    /// * `Err(PFail)` containing an error message, the span of the failed match,
+    /// * `Err(Error)` containing an error message, the span of the failed match,
     ///   and the input position after the attempted parse if the match fails.
-    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, &'a str>, PFail<'a, K>> {
+    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, &'a str>, Error<'a, K>> {
         let ident_len = self.ident.len();
 
         if i.tokens.len() < i.loc + ident_len {
-            return Err(PFail {
-                error: vec![format!("Not enough tokens to match {}", self.ident)],
-                span: vec![(i.loc, i.tokens.len())],
-                rest: PInput {
+            return Err(Error {
+                kind: vec![ErrorKind::Unexpected {
+                    expected: vec![TokenPattern::String(std::borrow::Cow::Borrowed(self.ident))],
+                    found: TokenPattern::String(std::borrow::Cow::Borrowed("Not enough tokens")),
+                }],
+                span: (i.loc, i.tokens.len()),
+                state: PInput {
                     tokens: i.tokens,
                     loc: i.loc,
                 },
@@ -68,10 +74,15 @@ where
             .any(|(a, b)| !(a.eq(b)))
         {
             // Failed parse: return error message, span, and updated input location
-            Err(PFail {
-                error: vec![format!("Expected {}", self.ident)],
-                span: vec![(i.loc, i.loc + ident_len)],
-                rest: PInput {
+            Err(Error {
+                kind: vec![ErrorKind::Unexpected {
+                    expected: vec![TokenPattern::String(std::borrow::Cow::Borrowed(self.ident))],
+                    found: TokenPattern::Tokens(std::borrow::Cow::Borrowed(
+                        &i.tokens[i.loc..i.loc + ident_len],
+                    )),
+                }],
+                span: (i.loc, i.loc + ident_len),
+                state: PInput {
                     tokens: i.tokens,
                     loc: i.loc + ident_len,
                 },
@@ -89,4 +100,7 @@ where
     }
 }
 
-impl<'a, K> Parser<'a, K, &'a str> for PIdent<'a> where K: PartialEq + Clone + PartialEq<u8> + 'a {}
+impl<'a, K> Parser<'a, K, &'a str> for PIdent<'a> where
+    K: PartialEq + Clone + PartialEq<u8> + Char + 'a
+{
+}

@@ -1,4 +1,7 @@
 /target
 
-
+# compiled .pdf files from *.md
 *.pdf
+
+# todo files to keep track of issues
+todo.txt

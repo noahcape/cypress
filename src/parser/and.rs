@@ -1,4 +1,4 @@
-use crate::parser::*;
+use crate::{error::Error, parser::*};
 use std::marker::PhantomData;
 
 /// A parser combinator that applies two parsers in sequence,
@@ -63,8 +63,8 @@ where
     /// but its value is discarded.
     ///
     /// Returns `Ok(PSuccess)` with the output from `first` if both succeed,
-    /// or `Err(PFail)` if either fails.
-    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O>, PFail<'a, K>> {
+    /// or `Err(Error)` if either fails.
+    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O>, Error<'a, K>> {
         let loc = i.loc;
         let tokens = i.tokens;
 

@@ -104,7 +104,7 @@ fn expr<'a>() -> impl Parser<'a, u8, Expr> {
 }
 
 fn parser<'a>() -> impl Parser<'a, u8, Expr> {
-    (expr().delimited_by(just('\n'))).map(Expr::Seq)
+    (expr().delimited_by(just('\n'))).until_end().map(Expr::Seq)
 }
 
 fn eval<'a>(expr: Expr, var_map: &mut HashMap<String, Expr>) -> Result<Expr, String> {
@@ -141,7 +141,7 @@ fn eval<'a>(expr: Expr, var_map: &mut HashMap<String, Expr>) -> Result<Expr, Str
 
 fn main() {
     let input = b"y = print z = 4
-x = print y
+x = print me y
 y = 10
 print y
 print x
@@ -149,16 +149,15 @@ print z";
 
     match parser().parse(input.into_input()) {
         Ok(PSuccess { val, rest: _ }) => {
+            print!("{:?}", val);
             let res = eval(val, &mut HashMap::new());
             match res {
                 Ok(ret) => println!("{:?}", ret),
-                Err(err) => println!("Error: {}", err),
+                Err(err) => println!("Evaluation Error: {}", err),
             }
         }
-        Err(PFail {
-            error,
-            span: _,
-            rest: _,
-        }) => println!("{:?}", error),
+        Err(e) => {
+            println!("{}", e)
+        }
     }
 }

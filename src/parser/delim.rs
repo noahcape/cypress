@@ -1,4 +1,4 @@
-use crate::parser::*;
+use crate::{error::Error, parser::*};
 use std::marker::PhantomData;
 
 /// A parser combinator that parses one or more occurrences of a pattern `p`
@@ -25,6 +25,8 @@ pub struct PDelim<P1, P2, A> {
 /// Creates a new `PDelim` parser combinator that parses zero or more
 /// occurrences of `p` separated by `delim`.
 ///
+/// See [`crate::parser::delim1::pdelim1`] to force one or more occurances of `p`
+///
 /// # Arguments
 ///
 /// * `p` - The parser for the main pattern to parse repeatedly.
@@ -33,7 +35,8 @@ pub struct PDelim<P1, P2, A> {
 /// # Returns
 ///
 /// A `PDelim` instance which implements `ParserCore` and parses
-/// sequences of `p` separated by `delim`, returning a vector of parsed values.
+/// sequences of `p` zero or more times separated by `delim`, returning
+/// a vector of parsed values.
 pub fn pdelim<P1, P2, A>(p: P1, delim: P2) -> PDelim<P1, P2, A> {
     PDelim {
         p,
@@ -66,8 +69,8 @@ where
     /// # Returns
     ///
     /// * `Ok(PSuccess)` with a vector of parsed values if at least one parse succeeded.
-    /// * `Err(PFail)` if no values could be parsed.
-    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, Vec<O>>, PFail<'a, K>> {
+    /// * `Err(Error)` if no values could be parsed.
+    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, Vec<O>>, Error<'a, K>> {
         let mut vals = vec![];
         let mut input = i;
 
@@ -92,14 +95,17 @@ where
                         }
                     }
                 }
-                Err(PFail { error, span, rest }) => {
-                    if !vals.is_empty() {
-                        // Return partial success if at least one value parsed
-                        return Ok(PSuccess { val: vals, rest });
-                    } else {
-                        // Fail if no values parsed
-                        return Err(PFail { error, span, rest });
-                    }
+
+                // if no token to read then return found tokens
+                Err(Error {
+                    kind: _,
+                    span: _,
+                    state,
+                }) => {
+                    return Ok(PSuccess {
+                        val: vals,
+                        rest: state,
+                    });
                 }
             }
         }

@@ -1,4 +1,4 @@
-use crate::parser::*;
+use crate::{error::Error, parser::*};
 use std::sync::Arc;
 
 /// A parser combinator that applies a transformation function to the result of a parser.
@@ -58,7 +58,7 @@ where
     ///
     /// # Errors
     /// Returns a parse failure if the inner parser `p` fails.
-    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O2>, PFail<'a, K>> {
+    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O2>, Error<'a, K>> {
         // Apply the inner parser
         let PSuccess { val, rest } = self.p.parse(i)?;
 

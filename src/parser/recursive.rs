@@ -1,4 +1,4 @@
-use crate::parser::*;
+use crate::{error::Error, parser::*};
 use std::{cell::RefCell, rc::Rc};
 
 /// A type alias for a reference-counted, mutable, optionally initialized parser.
@@ -120,7 +120,7 @@ where
     /// # Returns
     ///
     /// The result of parsing using the internally stored parser.
-    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O>, PFail<'a, K>> {
+    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O>, Error<'a, K>> {
         self.parser
             .borrow()
             .as_ref()

@@ -1,20 +1,23 @@
-use crate::parser::*;
+use crate::{
+    error::{Error, ErrorKind},
+    parser::*,
+};
 use std::sync::Arc;
 
 /// A parser that succeeds if the next input token satisfies a predicate function.
 ///
-/// `PSat` holds a test function (predicate) and a condition string describing
-/// the expected condition. It consumes exactly one token if the predicate passes.
+/// `PSat` holds a test function (predicate) and a vector of tokens that could be
+/// expected to find. It consumes exactly one token if the predicate passes.
 ///
 /// # Type Parameters
 ///
 /// * `K` - The type of tokens to parse. Must implement `PartialEq`.
 #[derive(Clone)]
-pub struct PSat<K: PartialEq> {
+pub struct PSat<'a, K: PartialEq + Clone> {
     /// The predicate function to test a token.
     test: Arc<dyn Fn(&K) -> bool>,
     /// A description of the expected condition for error reporting.
-    condition: String,
+    expected: Vec<TokenPattern<'a, K>>,
 }
 
 /// Creates a new `PSat` parser that succeeds when a token satisfies the given predicate.
@@ -22,25 +25,25 @@ pub struct PSat<K: PartialEq> {
 /// # Arguments
 ///
 /// * `test` - A function or closure that returns `true` if the token is accepted.
-/// * `condition` - A string description of the expected token (used in error messages).
+/// * `expected` - A vector of `TokenPattern`s that could have been expected.
 ///
 /// # Returns
 ///
 /// A `PSat` parser instance that parses one token satisfying `test`.
-pub fn psat<K, F>(test: F, condition: impl Into<String>) -> PSat<K>
+pub fn psat<'a, K, F>(test: F, expected: Vec<TokenPattern<'a, K>>) -> PSat<'a, K>
 where
-    K: PartialEq,
+    K: PartialEq + Clone,
     F: Fn(&K) -> bool + 'static,
 {
     let func = move |input: &K| test(input);
 
     PSat {
         test: Arc::new(func),
-        condition: condition.into(),
+        expected,
     }
 }
 
-impl<'a, K> ParserCore<'a, K, K> for PSat<K>
+impl<'a, K> ParserCore<'a, K, K> for PSat<'a, K>
 where
     K: PartialEq + Clone + 'a,
 {
@@ -57,8 +60,8 @@ where
     /// # Returns
     ///
     /// * `Ok(PSuccess)` with the token and advanced input location if parsing succeeds.
-    /// * `Err(PFail)` with an error message and span if parsing fails.
-    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, K>, PFail<'a, K>> {
+    /// * `Err(Error)` with an error message and span if parsing fails.
+    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, K>, Error<'a, K>> {
         match i.tokens.get(i.loc) {
             Some(tok) => {
                 if (self.test)(tok) {
@@ -70,20 +73,26 @@ where
                         },
                     })
                 } else {
-                    Err(PFail {
-                        error: vec![self.condition.clone()],
-                        span: vec![(i.loc, i.loc + 1)],
-                        rest: PInput {
+                    Err(Error {
+                        kind: vec![ErrorKind::Unexpected {
+                            expected: self.expected.clone(),
+                            found: TokenPattern::Token(std::borrow::Cow::Borrowed(tok)),
+                        }],
+                        span: (i.loc, i.loc + 1),
+                        state: PInput {
                             tokens: i.tokens,
                             loc: i.loc + 1,
                         },
                     })
                 }
             }
-            None => Err(PFail {
-                error: vec!["No token to read".to_string()],
-                span: vec![(i.loc, i.loc)],
-                rest: PInput {
+            None => Err(Error {
+                kind: vec![ErrorKind::Unexpected {
+                    expected: self.expected.clone(),
+                    found: TokenPattern::String(std::borrow::Cow::Borrowed("No token to read")),
+                }],
+                span: (i.loc, i.loc),
+                state: PInput {
                     tokens: i.tokens,
                     loc: i.loc + 1,
                 },
@@ -92,4 +101,4 @@ where
     }
 }
 
-impl<'a, K> Parser<'a, K, K> for PSat<K> where K: PartialEq + Clone + 'a {}
+impl<'a, K> Parser<'a, K, K> for PSat<'a, K> where K: PartialEq + Clone + 'a {}

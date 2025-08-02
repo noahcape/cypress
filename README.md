@@ -1,3 +1,6 @@
+[![crates.io](https://img.shields.io/crates/v/cypress.svg)](https://crates.io/crates/cypress)
+[![crates.io](https://docs.rs/cypress/badge.svg)](https://docs.rs/cypress)
+
 # Cypress
 
 A parser library inspired by a scaled down derivative of the FParsec combinator library in F#.

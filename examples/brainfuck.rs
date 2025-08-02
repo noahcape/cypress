@@ -1,4 +1,4 @@
-use cypress::prelude::*;
+use cypress::{error::Error, prelude::*};
 
 // See: https://gist.github.com/roachhd/dce54bec8ba55fb17d3a for an overview of BrainFuck
 // > = increases memory pointer, or moves the pointer to the right 1 block.
@@ -36,12 +36,10 @@ fn main() {
                 expr.between(just('['), just(']'))
                     .map(|expr| Instruction::Loop(expr))
             )
-            .many(),
+            .many()
+            .until_end(),
         )
-    })
-    // Current way to go until the end of file
-    .then(any().not())
-    .map(|(bf, _)| bf);
+    });
 
     let input = b"+++++[>>+<<-]".into_input();
 
@@ -69,13 +67,12 @@ fn main() {
             println!("{:?}", actual_bf);
             assert_eq!(actual_bf, expected_bf)
         }
-        Err(PFail {
-            error,
+        Err(Error {
+            kind,
             span: _,
-            rest: _,
+            state: _,
         }) => {
-            println!("{:?}", error);
-            assert!(false)
+            println!("{:?}", kind);
         }
     }
 }

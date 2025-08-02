@@ -1,5 +1,9 @@
-use crate::prelude::{
-    debug, pand, pbetween, pbind, pdelim, pinto, pmany, pnot, por, ppadded, pseq,
+use crate::{
+    error::{Error, ErrorDisplay},
+    prelude::{
+        debug, pand, pbetween, pbind, pdelim, pdelim1, pinto, pmany, pmany1, pnot, por, ppadded,
+        pseq, puntil_end,
+    },
 };
 
 // temp: switch to Range<usize> at some point
@@ -42,27 +46,6 @@ where
     pub rest: PInput<'a, T>,
 }
 
-/// Represents a failed parse, including an error message, the span of failure, and the remaining input.
-///
-/// Used to propagate errors in a structured way with location information.
-///
-/// # Type Parameters
-/// - `'a`: Lifetime of the input
-/// - `T`: Token type
-pub struct PFail<'a, T>
-where
-    T: PartialEq + Clone,
-{
-    /// Human-readable error message
-    pub error: Vec<String>,
-
-    /// Span (start and end indices) where the failure occurred
-    pub span: Vec<Span>,
-
-    /// The input state at the point of failure
-    pub rest: PInput<'a, T>,
-}
-
 /// The core parsing trait implemented by all low-level parser combinators.
 ///
 /// This trait defines the raw parsing interface. It should be implemented by all combinator types.
@@ -76,7 +59,7 @@ where
     K: PartialEq + Clone + 'a,
 {
     /// Attempt to parse from the given input, returning a result or failure.
-    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O>, PFail<'a, K>>;
+    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O>, Error<'a, K>>;
 }
 
 /// High-level composable parser trait built on top of `ParserCore`.
@@ -130,13 +113,27 @@ pub trait Parser<'a, K: PartialEq + Clone + 'a, O: 'a>: ParserCore<'a, K, O> + S
         pmany(self)
     }
 
-    /// Parse this parser separated by a delimiter (but keep only the content values).
+    /// Match this parser one or more times and collect the results.
+    fn many1(self) -> impl Parser<'a, K, Vec<O>> {
+        pmany1(self)
+    }
+
+    /// Parse this parser zero or more times separated by a delimiter (but keep only the content values).
     fn delimited_by<PD, A>(self, delim: PD) -> impl Parser<'a, K, Vec<O>>
     where
         A: 'a,
         PD: Parser<'a, K, A>,
     {
         pdelim(self, delim)
+    }
+
+    /// Parse this parser one or more times separated by a delimiter (but keep only the content values).
+    fn delimited_by1<PD, A>(self, delim: PD) -> impl Parser<'a, K, Vec<O>>
+    where
+        A: 'a,
+        PD: Parser<'a, K, A>,
+    {
+        pdelim1(self, delim)
     }
 
     /// Succeeds only if this parser fails, and vice versa. Produces no value.
@@ -162,7 +159,10 @@ pub trait Parser<'a, K: PartialEq + Clone + 'a, O: 'a>: ParserCore<'a, K, O> + S
     }
 
     /// Debug tracing combinator to help inspect parsing behavior.
-    fn debug(self, label: &'static str) -> impl Parser<'a, K, O> {
+    fn debug(self, label: &'static str) -> impl Parser<'a, K, O>
+    where
+        K: ErrorDisplay,
+    {
         debug(self, label)
     }
 
@@ -173,5 +173,10 @@ pub trait Parser<'a, K: PartialEq + Clone + 'a, O: 'a>: ParserCore<'a, K, O> + S
         P2: Parser<'a, K, A>,
     {
         pand(self, second)
+    }
+
+    /// Succeeds if and only if the inner parser succeeds and consumes all input
+    fn until_end(self) -> impl Parser<'a, K, O> {
+        puntil_end(self)
     }
 }

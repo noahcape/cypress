@@ -1,191 +1,149 @@
-// This file is not in use and is a work in progress
-use crate::prelude::PInput;
-use crate::{parser::utils::IntoToken, text::Char};
+use std::borrow::Cow;
 use std::fmt::Display;
 
 use crate::parser::core::Span;
+use crate::prelude::PInput;
 
-pub struct Underline<T>(pub T, pub Span);
-
-impl<T> Display for Underline<T>
+/// A pattern representing one or more tokens or a string, used for descriptive error messages.
+#[derive(Clone, Debug)]
+pub enum TokenPattern<'a, K>
 where
-    T: Display,
+    K: Clone,
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let (start, stop) = self.1;
-        let underline = Color::Red("-".repeat(stop - start));
-        let carrot = Color::Red(">");
+    /// A single token.
+    Token(Cow<'a, K>),
 
-        write!(
-            f,
-            "{}\n{}{}{}",
-            self.0,
-            " ".repeat(start),
-            carrot,
-            underline
-        )
+    /// A sequence of tokens.
+    Tokens(Cow<'a, [K]>),
+
+    /// A human-readable string pattern.
+    String(Cow<'a, str>),
+}
+
+/// A trait for custom error display formatting, allowing types like u8 that
+/// need to be display in a special way to be diffentiated from things that implement display
+///
+/// **Note**: this currently requires users who want to parse enums to implement [`ErrorDisplay`] themselves.
+pub trait ErrorDisplay {
+    /// Formats the implementing type for display in errors.
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result;
+}
+
+impl ErrorDisplay for &[u8] {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", String::from_utf8(self.to_vec()).unwrap())
     }
 }
 
-pub enum Style<K>
-where
-    K: Display,
-{
-    Bold(K),
-    Plain(K),
-}
-
-impl<K> Display for Style<K>
-where
-    K: Display,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Style::Bold(i) => write!(f, "\x1b[1m{i}\x1b[0m"),
-            Style::Plain(i) => write!(f, "{i}"),
-        }
+impl ErrorDisplay for u8 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", String::from_utf8(vec![*self]).unwrap())
     }
 }
 
-pub enum Color<K>
+impl<'a, K> Display for TokenPattern<'a, K>
 where
-    K: Display,
-{
-    Red(K),
-    Yellow(K),
-    Plain(K),
-}
-
-impl<K> Display for Color<K>
-where
-    K: Display,
+    K: Clone + ErrorDisplay,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Color::Red(i) => write!(f, "\x1b[31m{i}\x1b[0m"),
-            Color::Yellow(i) => write!(f, "\x1b[33m{i}\x1b[0m"),
-            Color::Plain(i) => write!(f, "{i}"),
-        }
-    }
-}
-
-pub enum ErrorKind<D>
-where
-    D: Display,
-{
-    Custom(String),
-    EOF,
-    Unexpected { expected: Vec<D>, found: D },
-}
-
-impl<D> Display for ErrorKind<D>
-where
-    D: Display,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ErrorKind::Custom(str) => write!(f, "{}", Color::Red(str)),
-            ErrorKind::Unexpected { expected, found } => {
-                let expected = expected
-                    .iter()
-                    .map(|exp| format!("{exp}"))
-                    .collect::<String>();
-                write!(
-                    f,
-                    "{} {}\n{} {}",
-                    Style::Bold("Expected:"),
-                    Style::Bold("Found:"),
-                    Color::Yellow(expected),
-                    Color::Red(found)
-                )
+            TokenPattern::Token(Cow::Borrowed(token)) => token.fmt(f),
+            TokenPattern::Token(Cow::Owned(token)) => token.fmt(f),
+            TokenPattern::Tokens(Cow::Borrowed(tokens)) => {
+                tokens.iter().try_for_each(|tok| tok.fmt(f))
             }
-            ErrorKind::EOF => write!(f, "{}", Color::Red("Reached end of file")),
+            TokenPattern::Tokens(Cow::Owned(tokens)) => {
+                tokens.iter().try_for_each(|tok| tok.fmt(f))
+            }
+            TokenPattern::String(Cow::Borrowed(str)) => write!(f, "{str}"),
+            TokenPattern::String(Cow::Owned(str)) => write!(f, "{str}"),
         }
     }
 }
 
-pub struct Error<'a, K, D>
+/// Represents the kind of error encountered during parsing.
+#[derive(Clone, Debug)]
+pub enum ErrorKind<'a, K>
+where
+    K: Clone,
+{
+    /// A custom string-based error.
+    Custom(&'a str),
+
+    /// Indicates that the input has been exhausted.
+    EOF,
+
+    /// Indicates that the parser encountered an unexpected token.
+    Unexpected {
+        /// List of expected patterns.
+        expected: Vec<TokenPattern<'a, K>>,
+
+        /// The actual token that was found.
+        found: TokenPattern<'a, K>,
+    },
+}
+
+impl<'a, K> Display for ErrorKind<'a, K>
+where
+    K: Clone + ErrorDisplay,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorKind::Custom(str) => write!(f, "{str}"),
+            ErrorKind::EOF => write!(f, "No tokens to read: reached end of file"),
+            ErrorKind::Unexpected { expected, found } => write!(
+                f,
+                "Expected: {} by found: \"{found}\"",
+                expected
+                    .iter()
+                    .map(|tok_pat| format!("{tok_pat}"))
+                    .collect::<Vec<String>>()
+                    .join(","),
+            ),
+        }
+    }
+}
+
+/// A parsing error that includes one or more kinds of errors, the input span where it occurred,
+/// and the remaining parser state.
+#[derive(Debug)]
+pub struct Error<'a, K>
 where
     K: PartialEq + Clone + 'a,
-    D: Display,
 {
-    pub kind: ErrorKind<D>,
+    /// The list of error kinds that occurred.
+    pub kind: Vec<ErrorKind<'a, K>>,
+
+    /// The span in the input where the error occurred.
     pub span: Span,
+
+    /// The remaining input at the point of the error.
     pub state: PInput<'a, K>,
 }
 
-impl<'a, K, D> Error<'a, K, D>
+impl<'a, K> Error<'a, K>
 where
-    K: PartialEq + Clone + Char + 'a,
-    D: Display,
+    K: PartialEq + Clone + 'a,
 {
-    pub fn new(kind: ErrorKind<D>, span: Span, state: PInput<'a, K>) -> Self {
+    /// Creates a new `Error` with the given kind(s), input span, and parser state.
+    pub fn new(kind: Vec<ErrorKind<'a, K>>, span: Span, state: PInput<'a, K>) -> Self {
         Error { kind, span, state }
     }
-
-    pub fn fmt_state(&self) -> String {
-        let ((line_start, line_stop), _) = self.state.span_snapshot(self.span);
-
-        format!(
-            "{} {}-{}\n\nSource:\n{}",
-            Style::Bold(Color::Red("Error at:")),
-            Style::Bold(line_start),
-            Style::Bold(line_stop),
-            self.state.fmt_tokens()
-        )
-    }
 }
 
-impl<'a, T, K> Display for Error<'a, K, T>
+impl<'a, K> Display for Error<'a, K>
 where
-    K: PartialEq + Clone + Display + Char + 'a,
-    T: IntoToken<K> + Display + Clone,
+    K: PartialEq + Clone + ErrorDisplay + 'a,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}\n\n{}", self.fmt_state(), self.kind)
-    }
-}
-
-impl<'a, T> PInput<'a, T>
-where
-    T: PartialEq + Clone + Char + 'a,
-{
-    fn span_snapshot(&self, span: Span) -> (Span, usize) {
-        let (expected_start, expected_stop) = span;
-
-        let mut start = 0;
-        let mut stop = 0;
-        let mut tick_offset = 0;
-        let mut offset = 0;
-        let mut line_num = 0;
-
-        for (i, tok) in self.tokens.iter().enumerate() {
-            if tok.is_newline() {
-                line_num += 1;
-                tick_offset = i;
-            }
-
-            if i == expected_start {
-                start = line_num;
-                offset = tick_offset;
-            }
-
-            if i == expected_stop {
-                stop = line_num;
-                break;
-            }
-        }
-
-        ((start, stop), offset)
-    }
-
-    fn fmt_tokens(&self) -> String {
-        String::from_utf8(
-            self.tokens
+        write!(
+            f,
+            "{}",
+            self.kind
                 .iter()
-                .map(|tok| tok.to_ascii().unwrap())
-                .collect(),
+                .map(|err| format!("{err}"))
+                .collect::<Vec<String>>()
+                .join("\n")
         )
-        .unwrap()
     }
 }

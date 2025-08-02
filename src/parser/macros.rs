@@ -61,7 +61,7 @@ macro_rules! choice {
 /// let select_parser = select! {
 ///     (pident("ObiWan")) => StarWarsCharacters::ObiWan,
 ///     (pident("Yoda")) => StarWarsCharacters::Yoda,
-///     (pident("DarthVade")) => StarWarsCharacters::DarthVader,
+///     (pident("DarthVader")) => StarWarsCharacters::DarthVader,
 ///     (pident("Luke")) => StarWarsCharacters::Luke,
 /// };
 ///
@@ -69,7 +69,7 @@ macro_rules! choice {
 /// let choice_parser = choice!(
 ///     (pident("ObiWan")).into_(StarWarsCharacters::ObiWan),
 ///     (pident("Yoda")).into_(StarWarsCharacters::Yoda),
-///     (pident("DarthVade")).into_(StarWarsCharacters::DarthVader),
+///     (pident("DarthVader")).into_(StarWarsCharacters::DarthVader),
 ///     (pident("Luke")).into_(StarWarsCharacters::Luke),
 /// );
 ///
@@ -127,7 +127,7 @@ macro_rules! select {
 /// into a sequene parser using pseq. Optionally one can use `=>`
 /// along with a closure to map the parser result into a useful result.
 ///
-/// See `[crate::select!]` for details about passing parser versus literals.
+/// See [`select!`] for details about passing parser versus literals.
 ///
 /// # Examples
 ///
@@ -179,7 +179,7 @@ macro_rules! sequence {
 
 /// Macro for wraping expressions or literals, typically for inside other macros.
 ///
-/// This macro will be called upon automatically from macros like `sequence!` and `choice!`
+/// This macro will be called upon automatically from macros like [`sequence!`] and [`choice!`]
 /// but can also be used on its own.
 ///
 /// # Examples

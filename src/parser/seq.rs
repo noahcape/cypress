@@ -1,4 +1,4 @@
-use crate::parser::*;
+use crate::{error::Error, parser::*};
 
 /// A parser combinator that parses a sequence of two parsers in order.
 ///
@@ -53,8 +53,8 @@ where
     /// # Returns
     ///
     /// * `Ok(PSuccess)` with a tuple `(O1, O2)` containing results of both parsers and the remaining input.
-    /// * `Err(PFail)` if either parser fails.
-    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, (O1, O2)>, PFail<'a, K>> {
+    /// * `Err(Error)` if either parser fails.
+    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, (O1, O2)>, Error<'a, K>> {
         // Parse with the first parser
         let PSuccess { val: f_val, rest } = self.p1.parse(i)?;
         // Parse with the second parser from the remaining input

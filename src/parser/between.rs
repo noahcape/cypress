@@ -1,4 +1,7 @@
-use crate::parser::*;
+use crate::{
+    error::{Error, ErrorKind},
+    parser::*,
+};
 use std::marker::PhantomData;
 
 /// A parser combinator that parses a value surrounded by two delimiters.
@@ -72,9 +75,7 @@ where
     /// Parses the input using three parsers in sequence: `l`, `p`, and `r`.
     ///
     /// Only the result of `p` is returned. If any parser fails, the whole parse fails.
-    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O>, PFail<'a, K>> {
-        let start_loc = i.loc;
-
+    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O>, Error<'a, K>> {
         // Apply the left parser (discard its result)
         let PSuccess {
             val: _,
@@ -93,14 +94,13 @@ where
                 val: _,
                 rest: after_r,
             }) => Ok(PSuccess { val, rest: after_r }),
-            Err(PFail {
-                mut error,
-                mut span,
-                rest,
+            Err(Error {
+                mut kind,
+                span,
+                state,
             }) => {
-                error.push("Missing final token for parsing between.".to_string());
-                span.push((start_loc, rest.loc));
-                Err(PFail { error, span, rest })
+                kind.push(ErrorKind::Custom("Missing end parsing between."));
+                Err(Error { kind, span, state })
             }
         }
     }

@@ -1,4 +1,4 @@
-use crate::parser::*;
+use crate::{error::Error, parser::*};
 
 /// A parser combinator that tries to parse input with the first parser `p1`.
 /// If `p1` fails, it tries the second parser `p2`.
@@ -50,8 +50,8 @@ where
     /// # Returns
     ///
     /// * `Ok(PSuccess)` if either `p1` or `p2` succeed.
-    /// * `Err(PFail)` if both `p1` and `p2` fail.
-    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O>, PFail<'a, K>> {
+    /// * `Err(Error)` if both `p1` and `p2` fail.
+    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O>, Error<'a, K>> {
         match self.p1.parse(i.clone()) {
             Ok(psuccess) => Ok(psuccess),
             Err(_) => self.p2.parse(i),

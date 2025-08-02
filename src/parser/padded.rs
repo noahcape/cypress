@@ -1,4 +1,4 @@
-use crate::parser::*;
+use crate::{error::Error, parser::*};
 use std::marker::PhantomData;
 
 /// A parser combinator that parses a pattern `p` padded by zero or more occurrences
@@ -65,8 +65,8 @@ where
     /// # Returns
     ///
     /// * `Ok(PSuccess)` containing the output of `p` and the remaining input.
-    /// * `Err(PFail)` if any of the parsing steps fail.
-    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O>, PFail<'a, K>> {
+    /// * `Err(Error)` if any of the parsing steps fail.
+    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O>, Error<'a, K>> {
         // Parse zero or more paddings before main parser
         let pad = self.pad.clone().many();
 

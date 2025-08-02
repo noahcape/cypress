@@ -1,4 +1,7 @@
-use crate::parser::*;
+use crate::{
+    error::{Error, ErrorKind},
+    parser::*,
+};
 use std::marker::PhantomData;
 
 /// A parser combinator that succeeds only if the inner parser `p` fails at the current input position.
@@ -53,19 +56,21 @@ where
     /// # Returns
     ///
     /// * `Ok(PSuccess)` with unit `()` if `p` fails (input not matching `p`).
-    /// * `Err(PFail)` if `p` succeeds (input matches `p`).
-    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, ()>, PFail<'a, K>> {
+    /// * `Err(Error)` if `p` succeeds (input matches `p`).
+    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, ()>, Error<'a, K>> {
         let start = i.loc;
         match self.p.parse(i) {
-            Ok(PSuccess { val: _, rest }) => Err(PFail {
-                error: vec!["Was what was not expected.".to_string()],
-                span: vec![(start, rest.loc)],
-                rest,
+            Ok(PSuccess { val: _, rest }) => Err(Error {
+                kind: vec![ErrorKind::Custom(
+                    "Expected a negation of the previous parser.",
+                )],
+                span: (start, rest.loc),
+                state: rest,
             }),
-            Err(PFail {
-                error: _,
+            Err(Error {
+                kind: _,
                 span: _,
-                rest,
+                state: rest,
             }) => Ok(PSuccess { val: (), rest }),
         }
     }
