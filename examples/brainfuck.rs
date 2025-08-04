@@ -1,4 +1,4 @@
-use cypress::{error::Error, prelude::*};
+use cypress::prelude::*;
 
 // See: https://gist.github.com/roachhd/dce54bec8ba55fb17d3a for an overview of BrainFuck
 // > = increases memory pointer, or moves the pointer to the right 1 block.
@@ -67,12 +67,6 @@ fn main() {
             println!("{:?}", actual_bf);
             assert_eq!(actual_bf, expected_bf)
         }
-        Err(Error {
-            kind,
-            span: _,
-            state: _,
-        }) => {
-            println!("{:?}", kind);
-        }
+        Err(e) => println!("{}", e),
     }
 }

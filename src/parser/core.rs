@@ -1,8 +1,8 @@
 use crate::{
     error::{Error, ErrorDisplay},
     prelude::{
-        debug, pand, pbetween, pbind, pdelim, pdelim1, pinto, pmany, pmany1, pnot, por, ppadded,
-        pseq, puntil_end,
+        debug, pand, pbetween, pbind, pdelim, pdelim1, pfoldl, pinto, pmany, pmany1, pnot, por,
+        ppadded, pseq, puntil_end,
     },
 };
 
@@ -71,12 +71,14 @@ where
 /// - `'a`: Lifetime of the input
 /// - `K`: Token type
 /// - `O`: Output type of the parser
-pub trait Parser<'a, K: PartialEq + Clone + 'a, O: 'a>: ParserCore<'a, K, O> + Sized {
+pub trait Parser<'a, K: PartialEq + Clone + 'a, O: Clone + 'a>:
+    ParserCore<'a, K, O> + Sized + Clone
+{
     /// Sequence two parsers and return a tuple of their results.
     fn then<O2, T>(self, p2: T) -> impl Parser<'a, K, (O, O2)>
     where
         T: Parser<'a, K, O2>,
-        O2: 'a,
+        O2: Clone + 'a,
     {
         pseq(self, p2)
     }
@@ -93,7 +95,7 @@ pub trait Parser<'a, K: PartialEq + Clone + 'a, O: 'a>: ParserCore<'a, K, O> + S
     fn map<O2, F>(self, f: F) -> impl Parser<'a, K, O2>
     where
         F: Fn(O) -> O2 + 'static,
-        O2: 'a,
+        O2: Clone + 'a,
     {
         pbind(self, f)
     }
@@ -101,7 +103,7 @@ pub trait Parser<'a, K: PartialEq + Clone + 'a, O: 'a>: ParserCore<'a, K, O> + S
     /// Apply this parser between two delimiters, discarding the delimiters' results.
     fn between<A, P1, P2>(self, l: P1, r: P2) -> impl Parser<'a, K, O>
     where
-        A: 'a,
+        A: Clone + 'a,
         P1: Parser<'a, K, A>,
         P2: Parser<'a, K, A>,
     {
@@ -121,7 +123,7 @@ pub trait Parser<'a, K: PartialEq + Clone + 'a, O: 'a>: ParserCore<'a, K, O> + S
     /// Parse this parser zero or more times separated by a delimiter (but keep only the content values).
     fn delimited_by<PD, A>(self, delim: PD) -> impl Parser<'a, K, Vec<O>>
     where
-        A: 'a,
+        A: Clone + 'a,
         PD: Parser<'a, K, A>,
     {
         pdelim(self, delim)
@@ -130,7 +132,7 @@ pub trait Parser<'a, K: PartialEq + Clone + 'a, O: 'a>: ParserCore<'a, K, O> + S
     /// Parse this parser one or more times separated by a delimiter (but keep only the content values).
     fn delimited_by1<PD, A>(self, delim: PD) -> impl Parser<'a, K, Vec<O>>
     where
-        A: 'a,
+        A: Clone + 'a,
         PD: Parser<'a, K, A>,
     {
         pdelim1(self, delim)
@@ -144,7 +146,7 @@ pub trait Parser<'a, K: PartialEq + Clone + 'a, O: 'a>: ParserCore<'a, K, O> + S
     /// Surround this parser with padding (like whitespace) and return the result.
     fn padded_by<P, A>(self, pad: P) -> impl Parser<'a, K, O>
     where
-        A: 'a,
+        A: Clone + 'a,
         P: Parser<'a, K, A> + Clone,
     {
         ppadded(self, pad)
@@ -169,7 +171,7 @@ pub trait Parser<'a, K: PartialEq + Clone + 'a, O: 'a>: ParserCore<'a, K, O> + S
     /// Apply another parser after this one, but return only the result of the first as well as the location after parsing.
     fn and<P2, A>(self, second: P2) -> impl Parser<'a, K, O>
     where
-        A: 'a,
+        A: Clone + 'a,
         P2: Parser<'a, K, A>,
     {
         pand(self, second)
@@ -178,5 +180,16 @@ pub trait Parser<'a, K: PartialEq + Clone + 'a, O: 'a>: ParserCore<'a, K, O> + S
     /// Succeeds if and only if the inner parser succeeds and consumes all input
     fn until_end(self) -> impl Parser<'a, K, O> {
         puntil_end(self)
+    }
+
+    /// Use `self` as `init` while folding left on `tail` using `f`
+    fn foldl<TP, F, I, O2>(self, tail: TP, f: F) -> impl Parser<'a, K, O>
+    where
+        O2: Clone + 'a,
+        I: IntoIterator<Item = O2> + Clone + 'a,
+        TP: Parser<'a, K, I>,
+        F: Fn(O, O2) -> O + Clone + 'a,
+    {
+        pfoldl(self, tail, f)
     }
 }

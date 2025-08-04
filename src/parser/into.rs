@@ -18,6 +18,7 @@ use std::marker::PhantomData;
 /// * `p` - The inner parser to run.
 /// * `out` - The value to output regardless of the inner parser's result.
 /// * `_marker` - PhantomData to hold the `In` type.
+#[derive(Clone)]
 pub struct PInto<P, In, Out> {
     /// Inner parser whose output is ignored.
     p: P,
@@ -50,7 +51,7 @@ pub fn pinto<P, In, Out>(p: P, out: Out) -> PInto<P, In, Out> {
 impl<'a, K, P, In, Out> ParserCore<'a, K, Out> for PInto<P, In, Out>
 where
     K: PartialEq + Clone + 'a,
-    In: 'a,
+    In: Clone + 'a,
     P: Parser<'a, K, In>,
     Out: PartialEq + Clone,
 {
@@ -78,7 +79,7 @@ impl<'a, K, P, In, Out> Parser<'a, K, Out> for PInto<P, In, Out>
 where
     K: PartialEq + Clone + 'a,
     Out: PartialEq + Clone + 'a,
-    In: 'a,
+    In: Clone + 'a,
     P: Parser<'a, K, In>,
 {
 }

@@ -114,8 +114,8 @@ pub mod prelude {
 
     pub use super::parser::{
         and::pand, any, between::pbetween, bind::pbind, core::*, debug::debug, delim::pdelim,
-        delim1::pdelim1, ident::pident, into::pinto, just, many::pmany, many1::pmany1, not::pnot,
-        or::por, padded::ppadded, pletter, pnum, pws, recursive::recursive, sat::psat, seq::pseq,
-        until_end::puntil_end, utils::IntoPInput,
+        delim1::pdelim1, fold_left::pfoldl, ident::pident, into::pinto, just, many::pmany,
+        many1::pmany1, not::pnot, or::por, padded::ppadded, pinlinews, pletter, pnum, pws,
+        recursive::recursive, sat::psat, seq::pseq, until_end::puntil_end, utils::IntoPInput,
     };
 }

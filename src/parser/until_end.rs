@@ -29,6 +29,7 @@ use crate::{
 /// let bad_result = parser.parse(bad_input);
 /// assert!(bad_result.is_err());
 /// ```
+#[derive(Clone)]
 pub struct PUntilEnd<P, O> {
     inner: P,
     _marker: PhantomData<O>,
@@ -47,7 +48,7 @@ pub fn puntil_end<P, O>(inner: P) -> PUntilEnd<P, O> {
 impl<'a, P, K, O> ParserCore<'a, K, O> for PUntilEnd<P, O>
 where
     K: PartialEq + Clone + 'a,
-    O: 'a,
+    O: Clone + 'a,
     P: Parser<'a, K, O>,
 {
     /// Parses in put with `inner` and succeeds only if `inner` succeeds
@@ -83,7 +84,7 @@ where
 impl<'a, P, K, O> Parser<'a, K, O> for PUntilEnd<P, O>
 where
     K: PartialEq + Clone + 'a,
-    O: 'a,
+    O: Clone + 'a,
     P: Parser<'a, K, O>,
 {
 }

@@ -12,6 +12,7 @@ use crate::{
 /// # Type Parameters
 ///
 /// * `P` - The parser type to apply repeatedly.
+#[derive(Clone)]
 pub struct PMany1<P> {
     /// The inner parser to apply repeatedly.
     p: P,
@@ -35,7 +36,7 @@ pub fn pmany1<P>(p: P) -> PMany1<P> {
 impl<'a, K, O, P> ParserCore<'a, K, Vec<O>> for PMany1<P>
 where
     K: PartialEq + Clone + 'a,
-    O: 'a,
+    O: Clone + 'a,
     P: Parser<'a, K, O>,
 {
     /// Parses one or more occurrences of the inner parser `p`.
@@ -82,7 +83,7 @@ where
 impl<'a, K, O, P> Parser<'a, K, Vec<O>> for PMany1<P>
 where
     K: PartialEq + Clone + 'a,
-    O: 'a,
+    O: Clone + 'a,
     P: Parser<'a, K, O>,
 {
 }

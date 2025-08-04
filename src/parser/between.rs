@@ -23,6 +23,7 @@ use std::marker::PhantomData;
 /// - `P`: Parser for the main content
 /// - `R`: Parser for the right delimiter
 /// - `A`: Output type of the left and right parsers (discarded)
+#[derive(Clone)]
 pub struct PBetween<L, P, R, A> {
     l: L,
     p: P,
@@ -66,8 +67,8 @@ pub fn pbetween<L, P, R, A>(l: L, p: P, r: R) -> PBetween<L, P, R, A> {
 impl<'a, K, O, L, P, R, A> ParserCore<'a, K, O> for PBetween<L, P, R, A>
 where
     K: PartialEq + Clone + 'a,
-    A: 'a,
-    O: 'a,
+    A: Clone + 'a,
+    O: Clone + 'a,
     L: Parser<'a, K, A>,
     P: Parser<'a, K, O>,
     R: Parser<'a, K, A>,
@@ -109,8 +110,8 @@ where
 impl<'a, K, O, L, P, R, A> Parser<'a, K, O> for PBetween<L, P, R, A>
 where
     K: PartialEq + Clone + 'a,
-    O: 'a,
-    A: 'a,
+    O: Clone + 'a,
+    A: Clone + 'a,
     L: Parser<'a, K, A>,
     P: Parser<'a, K, O>,
     R: Parser<'a, K, A>,

@@ -8,6 +8,7 @@ use crate::{
 /// `PDebug` wraps an inner parser and prints debugging information
 /// about the success or failure of the parsing operation,
 /// including a custom label provided at construction time.
+#[derive(Clone)]
 pub struct PDebug<P> {
     /// The inner parser that does the actual parsing work.
     inner: P,
@@ -33,7 +34,7 @@ pub fn debug<P>(inner: P, label: &'static str) -> PDebug<P> {
 impl<'a, K, O, P> ParserCore<'a, K, O> for PDebug<P>
 where
     K: PartialEq + Clone + ErrorDisplay + 'a,
-    O: 'a,
+    O: Clone + 'a,
     P: Parser<'a, K, O>,
 {
     /// Attempts to parse input using the inner parser, printing debug information on success or failure.
@@ -69,7 +70,7 @@ where
 impl<'a, K, O, Inner> Parser<'a, K, O> for PDebug<Inner>
 where
     K: PartialEq + Clone + ErrorDisplay + 'a,
-    O: 'a,
+    O: Clone + 'a,
     Inner: Parser<'a, K, O>,
 {
 }

@@ -10,6 +10,7 @@ use std::marker::PhantomData;
 ///
 /// Note: The second parser is applied at the *same location* as the first,
 /// making this more of a "lookahead validator" than a true sequential combinator.
+#[derive(Clone)]
 pub struct PAnd<P1, P2, A> {
     first: P1,
     second: P2,
@@ -51,8 +52,8 @@ pub fn pand<P1, P2, A>(first: P1, second: P2) -> PAnd<P1, P2, A> {
 impl<'a, K, O, P1, P2, A> ParserCore<'a, K, O> for PAnd<P1, P2, A>
 where
     K: PartialEq + Clone + 'a,
-    O: 'a,
-    A: 'a,
+    O: Clone + 'a,
+    A: Clone + 'a,
     P1: Parser<'a, K, O>,
     P2: Parser<'a, K, A>,
 {
@@ -83,8 +84,8 @@ where
 impl<'a, K, O, P1, P2, A> Parser<'a, K, O> for PAnd<P1, P2, A>
 where
     K: PartialEq + Clone + 'a,
-    O: 'a,
-    A: 'a,
+    O: Clone + 'a,
+    A: Clone + 'a,
     P1: Parser<'a, K, O>,
     P2: Parser<'a, K, A>,
 {

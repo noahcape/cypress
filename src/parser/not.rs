@@ -14,6 +14,7 @@ use std::marker::PhantomData;
 ///
 /// * `P` - The inner parser type.
 /// * `O` - The output type of the inner parser `p` (ignored here).
+#[derive(Clone)]
 pub struct PNot<P, O> {
     /// The inner parser to negate.
     p: P,
@@ -41,7 +42,7 @@ pub fn pnot<P, O>(p: P) -> PNot<P, O> {
 impl<'a, K, O, P> ParserCore<'a, K, ()> for PNot<P, O>
 where
     K: PartialEq + Clone + 'a,
-    O: 'a,
+    O: Clone + 'a,
     P: Parser<'a, K, O>,
 {
     /// Attempts to parse the input with the inner parser `p`.
@@ -79,7 +80,7 @@ where
 impl<'a, K, O, P> Parser<'a, K, ()> for PNot<P, O>
 where
     K: PartialEq + Clone + 'a,
-    O: 'a,
+    O: Clone + 'a,
     P: Parser<'a, K, O>,
 {
 }

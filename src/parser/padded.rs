@@ -13,6 +13,7 @@ use std::marker::PhantomData;
 /// * `P` - The parser type for the main pattern.
 /// * `PD` - The parser type for the padding pattern.
 /// * `A` - The output type of the padding parser (usually ignored).
+#[derive(Clone)]
 pub struct PPaddedBy<P, PD, A> {
     /// The main parser to parse between paddings.
     p: P,
@@ -44,8 +45,8 @@ pub fn ppadded<P, PD, A>(p: P, pad: PD) -> PPaddedBy<P, PD, A> {
 impl<'a, K, O, P, PD, A> ParserCore<'a, K, O> for PPaddedBy<P, PD, A>
 where
     K: PartialEq + Clone + 'a,
-    O: 'a,
-    A: 'a,
+    O: Clone + 'a,
+    A: Clone + 'a,
     P: Parser<'a, K, O>,
     PD: Parser<'a, K, A> + Clone,
 {
@@ -68,7 +69,7 @@ where
     /// * `Err(Error)` if any of the parsing steps fail.
     fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O>, Error<'a, K>> {
         // Parse zero or more paddings before main parser
-        let pad = self.pad.clone().many();
+        let pad = &self.pad.clone().many();
 
         let PSuccess {
             rest: after_pad1, ..
@@ -96,8 +97,8 @@ where
 impl<'a, K, O, P, PD, B> Parser<'a, K, O> for PPaddedBy<P, PD, B>
 where
     K: PartialEq + Clone + 'a,
-    O: 'a,
-    B: 'a,
+    O: Clone + 'a,
+    B: Clone + 'a,
     P: Parser<'a, K, O>,
     PD: Parser<'a, K, B> + Clone,
 {

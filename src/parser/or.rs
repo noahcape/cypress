@@ -10,6 +10,7 @@ use crate::{error::Error, parser::*};
 ///
 /// * `P1` - The first parser type.
 /// * `P2` - The second parser type.
+#[derive(Clone)]
 pub struct POr<P1, P2> {
     /// The first parser to try.
     p1: P1,
@@ -34,7 +35,7 @@ pub fn por<P1, P2>(p1: P1, p2: P2) -> POr<P1, P2> {
 impl<'a, K, O, P1, P2> ParserCore<'a, K, O> for POr<P1, P2>
 where
     K: PartialEq + Clone + 'a,
-    O: 'a,
+    O: Clone + 'a,
     P1: Parser<'a, K, O>,
     P2: Parser<'a, K, O>,
 {
@@ -62,7 +63,7 @@ where
 impl<'a, K, O, P1, P2> Parser<'a, K, O> for POr<P1, P2>
 where
     K: PartialEq + Clone + 'a,
-    O: 'a,
+    O: Clone + 'a,
     P1: Parser<'a, K, O>,
     P2: Parser<'a, K, O>,
 {

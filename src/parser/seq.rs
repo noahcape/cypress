@@ -35,8 +35,8 @@ pub fn pseq<P1, P2>(p1: P1, p2: P2) -> PSeq<P1, P2> {
 impl<'a, P1, P2, K, O1, O2> ParserCore<'a, K, (O1, O2)> for PSeq<P1, P2>
 where
     K: PartialEq + Clone + 'a,
-    O1: 'a,
-    O2: 'a,
+    O1: Clone + 'a,
+    O2: Clone + 'a,
     P1: Parser<'a, K, O1>,
     P2: Parser<'a, K, O2>,
 {
@@ -70,8 +70,8 @@ where
 impl<'a, P1, P2, K, O1, O2> Parser<'a, K, (O1, O2)> for PSeq<P1, P2>
 where
     K: PartialEq + Clone + 'a,
-    O1: 'a,
-    O2: 'a,
+    O1: Clone + 'a,
+    O2: Clone + 'a,
     P1: Parser<'a, K, O1>,
     P2: Parser<'a, K, O2>,
 {

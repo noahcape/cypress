@@ -55,7 +55,7 @@ impl<'a, K, O> Clone for PRecursive<'a, K, O> {
 /// use cypress::prelude::*;
 /// let input = b"(1+(2+3))".into_input();
 ///
-/// #[derive(Debug, PartialEq)]
+/// #[derive(Debug, PartialEq, Clone)]
 /// enum AST {
 ///     Num(u32),
 ///     Expr(Box<AST>, Box<AST>),
@@ -132,6 +132,6 @@ where
 impl<'a, K, O> Parser<'a, K, O> for PRecursive<'a, K, O>
 where
     K: PartialEq + Clone + 'a,
-    O: 'a,
+    O: Clone + 'a,
 {
 }

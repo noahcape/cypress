@@ -10,6 +10,7 @@ use std::sync::Arc;
 /// - `P`: The inner parser
 /// - `O1`: The output type of the inner parser `P`
 /// - `O2`: The output type after applying the transformation function
+#[derive(Clone)]
 pub struct PBind<P, O1, O2> {
     p: P,
     f: Arc<dyn Fn(O1) -> O2>,
@@ -48,7 +49,7 @@ where
 impl<'a, P, K, O1, O2> ParserCore<'a, K, O2> for PBind<P, O1, O2>
 where
     K: PartialEq + Clone + 'a,
-    O1: 'a,
+    O1: Clone + 'a,
     P: Parser<'a, K, O1>,
 {
     /// Applies the inner parser, then transforms its result using the function `f`.
@@ -73,8 +74,8 @@ where
 impl<'a, P, K, O1, O2> Parser<'a, K, O2> for PBind<P, O1, O2>
 where
     K: PartialEq + Clone + 'a,
-    O1: 'a,
-    O2: 'a,
+    O1: Clone + 'a,
+    O2: Clone + 'a,
     P: Parser<'a, K, O1>,
 {
 }

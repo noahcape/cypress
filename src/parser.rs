@@ -36,8 +36,11 @@ pub mod bind;
 pub mod sat;
 use sat::*;
 
-/// Parsers sequencing multiple parsers in order.
+/// Parsing multiple parsers one after the other.
 pub mod seq;
+
+/// Folding the result of parser into a single value
+pub mod fold_left;
 
 /// Choice combinators allowing trying multiple parsers in sequence,
 /// succeeding on the first successful parser.
@@ -157,6 +160,28 @@ where
 {
     psat(
         Box::new(|i: &K| i.is_whitespace()),
+        vec![TokenPattern::String(std::borrow::Cow::Borrowed(
+            "Whitespace token",
+        ))],
+    )
+}
+
+/// Creates a parser that accepts any inline ASCII whitespace token.
+/// Meaning no newline tokens.
+///
+/// # Type Parameters
+///
+/// * `K` - The token type convertible into `char`.
+///
+/// # Returns
+///
+/// A `PSat` parser that accepts tokens representing inline ASCII whitespace.
+pub fn pinlinews<'a, K>() -> PSat<'a, K>
+where
+    K: PartialEq + Char + Clone + 'static,
+{
+    psat(
+        Box::new(|i: &K| i.is_inline_whitespace()),
         vec![TokenPattern::String(std::borrow::Cow::Borrowed(
             "Whitespace token",
         ))],

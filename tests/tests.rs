@@ -134,7 +134,7 @@ fn t_pstring() {
 fn t_recursive() {
     let input = b"(1+(2+3))".into_input();
 
-    #[derive(Debug, PartialEq)]
+    #[derive(Debug, PartialEq, Clone)]
     enum AST {
         Num(u32),
         Expr(Box<AST>, Box<AST>),
@@ -165,7 +165,7 @@ fn t_recursive() {
 
 #[test]
 fn t_select() {
-    #[derive(Debug, PartialEq)]
+    #[derive(Debug, PartialEq, Clone)]
     enum Expr {
         Left,
         Right,
@@ -211,5 +211,77 @@ fn t_puntil_end() {
     match parser.parse(input.into_input()) {
         Ok(_) => assert!(false),
         Err(_) => assert!(true),
+    }
+}
+
+#[test]
+fn t_foldl() {
+    let input = "1 - 2 - 3 - 4";
+
+    let pdigit = pnum().map(|n: u8| (n - b'0') as i32).padded_by(pws());
+    let parser = pdigit
+        .clone()
+        .foldl(just('-').then(pdigit).map(|(_, n)| n).many(), |a, b| a - b);
+
+    match parser.parse(input.into_input()) {
+        Ok(PSuccess { val, rest: _ }) => assert_eq!(val, -8),
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn t_foldl_precedence() {
+    #[derive(Clone, PartialEq, Debug)]
+    enum BinOp {
+        Add,
+        Sub,
+        Mult,
+        Div,
+    }
+
+    #[derive(Clone, PartialEq, Debug)]
+    enum Expr {
+        Num(i32),
+        Op(Box<Expr>, BinOp, Box<Expr>),
+    }
+
+    let atom = pnum()
+        .many1()
+        .map(|xs| Expr::Num(String::from_utf8(xs).unwrap().parse::<i32>().unwrap()))
+        .padded_by(pws());
+
+    let mul_div = atom.clone().foldl(
+        (just('*').into_(BinOp::Mult).or(just('/').into_(BinOp::Div)))
+            .then(atom.clone())
+            .many(),
+        |a, (bop, b)| Expr::Op(Box::new(a), bop, Box::new(b)),
+    );
+
+    let parser = mul_div.clone().foldl(
+        (just('+').into_(BinOp::Add).or(just('-').into_(BinOp::Sub)))
+            .then(mul_div)
+            .many(),
+        |a, (bop, b)| Expr::Op(Box::new(a), bop, Box::new(b)),
+    );
+
+    let input = "3 + 2 * 2 - 1";
+
+    let expected_result = Expr::Op(
+        Box::new(Expr::Op(
+            Box::new(Expr::Num(3)),
+            BinOp::Add,
+            Box::new(Expr::Op(
+                Box::new(Expr::Num(2)),
+                BinOp::Mult,
+                Box::new(Expr::Num(2)),
+            )),
+        )),
+        BinOp::Sub,
+        Box::new(Expr::Num(1)),
+    );
+
+    match parser.parse(input.into_input()) {
+        Ok(PSuccess { val, rest: _ }) => assert_eq!(val, expected_result),
+        Err(_) => assert!(false),
     }
 }

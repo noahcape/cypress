@@ -56,7 +56,7 @@ bf_parser.parse(input);
 
 ## Note
 
-This is my first published project so if you have thoughts please feel free to open an issue a PR with ideas and fixes!
+This is my first published project so if you have thoughts please feel free to open an issue or a PR with ideas and fixes!
 
 ## License
 

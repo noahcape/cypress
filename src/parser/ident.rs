@@ -11,6 +11,7 @@ use crate::{
 /// # Lifetime
 ///
 /// * `'a` - Lifetime of the input string slice `ident`.
+#[derive(Clone)]
 pub struct PIdent<'a> {
     /// The string slice representing the identifier to match.
     ident: &'a str,
@@ -84,7 +85,7 @@ where
                 span: (i.loc, i.loc + ident_len),
                 state: PInput {
                     tokens: i.tokens,
-                    loc: i.loc + ident_len,
+                    loc: i.loc,
                 },
             })
         } else {

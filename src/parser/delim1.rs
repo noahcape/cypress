@@ -13,6 +13,7 @@ use std::marker::PhantomData;
 /// * `P1` - The parser type for the main pattern to parse.
 /// * `P2` - The parser type for the delimiter pattern.
 /// * `A` - A phantom type to track the output type of the delimiter parser (typically ignored).
+#[derive(Clone)]
 pub struct PDelim1<P1, P2, A> {
     /// The parser for the main pattern to be parsed multiple times.
     p: P1,
@@ -47,8 +48,8 @@ pub fn pdelim1<P1, P2, A>(p: P1, delim: P2) -> PDelim1<P1, P2, A> {
 impl<'a, K, O, P, PDelim_, B> ParserCore<'a, K, Vec<O>> for PDelim1<P, PDelim_, B>
 where
     K: PartialEq + Clone + 'a,
-    O: 'a,
-    B: 'a,
+    O: Clone + 'a,
+    B: Clone + 'a,
     P: Parser<'a, K, O>,
     PDelim_: Parser<'a, K, B>,
 {
@@ -115,8 +116,8 @@ where
 impl<'a, K, O, P, PDelim_, B> Parser<'a, K, Vec<O>> for PDelim1<P, PDelim_, B>
 where
     K: PartialEq + Clone + 'a,
-    O: 'a,
-    B: 'a,
+    O: Clone + 'a,
+    B: Clone + 'a,
     P: Parser<'a, K, O>,
     PDelim_: Parser<'a, K, B>,
 {
