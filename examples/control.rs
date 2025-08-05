@@ -70,23 +70,38 @@ impl BinOp {
     fn eval(&self, lhs: EvalToken, rhs: EvalToken) -> EvalToken {
         match self {
             BinOp::Add => {
-                assert!(lhs.is_num() && rhs.is_num());
+                assert!(
+                    lhs.is_num() && rhs.is_num(),
+                    "Both arguments must be numbers"
+                );
                 EvalToken::Num(lhs.get_num().unwrap() + rhs.get_num().unwrap())
             }
             BinOp::Sub => {
-                assert!(lhs.is_num() && rhs.is_num());
+                assert!(
+                    lhs.is_num() && rhs.is_num(),
+                    "Both arguments must be numbers"
+                );
                 EvalToken::Num(lhs.get_num().unwrap() - rhs.get_num().unwrap())
             }
             BinOp::Mul => {
-                assert!(lhs.is_num() && rhs.is_num());
+                assert!(
+                    lhs.is_num() && rhs.is_num(),
+                    "Both arguments must be numbers"
+                );
                 EvalToken::Num(lhs.get_num().unwrap() * rhs.get_num().unwrap())
             }
             BinOp::Div => {
-                assert!(lhs.is_num() && rhs.is_num());
+                assert!(
+                    lhs.is_num() && rhs.is_num(),
+                    "Both arguments must be numbers"
+                );
                 EvalToken::Num(lhs.get_num().unwrap() / rhs.get_num().unwrap())
             }
             BinOp::Mod => {
-                assert!(lhs.is_num() && rhs.is_num());
+                assert!(
+                    lhs.is_num() && rhs.is_num(),
+                    "Both arguments must be numbers"
+                );
                 EvalToken::Num(lhs.get_num().unwrap() % rhs.get_num().unwrap())
             }
             BinOp::Eq => EvalToken::Bool(lhs == rhs),
@@ -114,26 +129,20 @@ impl Expr {
 }
 
 impl Statement {
-    fn eval(&self, map: &mut HashMap<String, EvalToken>) -> EvalToken {
+    fn eval(&self, map: &mut HashMap<String, EvalToken>) {
         match self {
             Statement::Let(name, expr) => {
-                let eval_expr = expr.eval(map);
-                let _ = map.insert(name.to_string(), eval_expr);
-                eval_expr
+                let _ = map.insert(name.to_string(), expr.eval(map));
             }
-            Statement::While(expr, statements) => {
-                loop {
-                    if let EvalToken::Bool(true) = expr.eval(map) {
-                        for statment in statements {
-                            statment.eval(map);
-                        }
-                    } else {
-                        break;
+            Statement::While(expr, statements) => loop {
+                if let EvalToken::Bool(true) = expr.eval(map) {
+                    for statment in statements {
+                        statment.eval(map);
                     }
+                } else {
+                    break;
                 }
-
-                expr.eval(map)
-            }
+            },
             Statement::If(expr, statements, statements1) => {
                 if let EvalToken::Bool(true) = expr.eval(map) {
                     for statment in statements {
@@ -144,13 +153,9 @@ impl Statement {
                         statment.eval(map);
                     }
                 }
-
-                expr.eval(map)
             }
             Statement::Print(expr) => {
-                let eval_expr = expr.eval(map);
-                println!("{}", eval_expr);
-                eval_expr
+                println!("{}", expr.eval(map));
             }
         }
     }
@@ -166,50 +171,50 @@ fn expr_parser<'a>() -> impl Parser<'a, u8, Expr> {
         .many1()
         .map(|ns| Expr::Num(String::from_utf8(ns).unwrap().parse::<i32>().unwrap()));
 
-    let bool_ =
-        select! {(pident("true")) => Expr::Bool(true), (pident("false")) => Expr::Bool(false)};
+    let bool_ = select! {
+        (pident("true")) => Expr::Bool(true),
+        (pident("false")) => Expr::Bool(false)
+    };
 
-    // Ensure that operations bind with correct precedence
-    // Highest precedence
-    let bc_rec = choice!(string.clone(), num.clone(), bool_.clone());
+    let atom = choice!(string.clone(), num.clone(), bool_.clone()).padded_by(pinlinews());
 
-    // Second highest precedence
-    let bin_op_3 = (bc_rec.clone().padded_by(pinlinews())).foldl(
-        just('*')
-            .into_(BinOp::Mul)
-            .or(just('/').into_(BinOp::Div))
-            .or(just('%').into_(BinOp::Mod))
-            .then(bc_rec.padded_by(pinlinews()))
-            .many(),
-        |a, (op, b)| Expr::BinOp(Box::new(a), op, Box::new(b)),
-    );
+    // User precedence macro to simple define precedence levels
+    let bin_op = precedence! {
+        // highest precedece
+        atom,
+        {
+            choice!(
+                select! { '*' => BinOp::Mul },
+                select! { '/' => BinOp::Div },
+                select! { '%' => BinOp::Mod },
+            )
+            =>
+            |a, (op, b)| Expr::BinOp(Box::new(a), op, Box::new(b))
+        },
+        {
+            choice!(
+                select! { '+' => BinOp::Add },
+                select! { '-' => BinOp::Sub },
+            )
+            =>
+            |a, (op, b)| Expr::BinOp(Box::new(a), op, Box::new(b))
+        },
+        // lowest precedence
+        {
+            choice!(
+                select! { (sequence!('>' > '=')) => BinOp::Gte },
+                select! { (sequence!('<' > '=')) => BinOp::Lte },
+                select! { (sequence!('=' > '=')) => BinOp::Eq },
+                select! { (sequence!('!' > '=')) => BinOp::Neq },
+                select! { '<' => BinOp::Lt },
+                select! { '>' => BinOp::Gt },
+            )
+            =>
+            |a, (op, b)| Expr::BinOp(Box::new(a), op, Box::new(b))
+        }
+    };
 
-    // Third highest precedence
-    let bin_op_2 = bin_op_3.clone().foldl(
-        just('+')
-            .into_(BinOp::Add)
-            .or(just('-').into_(BinOp::Sub))
-            .then(bin_op_3.padded_by(pinlinews()))
-            .many(),
-        |a, (op, b)| Expr::BinOp(Box::new(a), op, Box::new(b)),
-    );
-
-    // Lowest precedence
-    let bin_op_1 = bin_op_2.clone().foldl(
-        choice!(
-            (sequence!('>' > '=')).into_(BinOp::Gte),
-            (sequence!('<' > '=')).into_(BinOp::Lte),
-            (sequence!('=' > '=')).into_(BinOp::Eq),
-            (sequence!('!' > '=')).into_(BinOp::Neq),
-            just('>').into_(BinOp::Gt),
-            just('<').into_(BinOp::Lt),
-        )
-        .then(bin_op_2.padded_by(pinlinews()))
-        .many(),
-        |a, (op, b)| Expr::BinOp(Box::new(a), op, Box::new(b)),
-    );
-
-    choice!(bin_op_1, string, num, bool_)
+    choice!(bin_op, string, num, bool_)
 }
 
 fn statement_parser<'a>() -> impl Parser<'a, u8, Statement> {

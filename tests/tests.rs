@@ -221,10 +221,73 @@ fn t_foldl() {
     let pdigit = pnum().map(|n: u8| (n - b'0') as i32).padded_by(pws());
     let parser = pdigit
         .clone()
-        .foldl(just('-').then(pdigit).map(|(_, n)| n).many(), |a, b| a - b);
+        .foldl(just('-').ignore_then(pdigit).many(), |a, b| a - b);
 
     match parser.parse(input.into_input()) {
         Ok(PSuccess { val, rest: _ }) => assert_eq!(val, -8),
+        Err(_) => assert!(false),
+    }
+}
+
+#[test]
+fn t_precedence_macro() {
+    #[derive(Clone, PartialEq, Debug)]
+    enum BinOp {
+        Add,
+        Sub,
+        Mult,
+        Div,
+    }
+
+    #[derive(Clone, PartialEq, Debug)]
+    enum Expr {
+        Num(i32),
+        Op(Box<Expr>, BinOp, Box<Expr>),
+    }
+
+    let atom = pnum()
+        .many1()
+        .map(|xs| Expr::Num(String::from_utf8(xs).unwrap().parse::<i32>().unwrap()))
+        .padded_by(pws());
+
+    let parser = precedence! {
+        atom,
+        {
+            choice!(
+                just('*').into_(BinOp::Mult),
+                just('/').into_(BinOp::Div),
+            )
+            =>
+            |a, (bop, b)| Expr::Op(Box::new(a), bop, Box::new(b))
+        },
+        {
+            choice!(
+                just('+').into_(BinOp::Add),
+                just('-').into_(BinOp::Sub),
+            )
+            =>
+            |a, (bop, b)| Expr::Op(Box::new(a), bop, Box::new(b))
+        },
+    };
+
+    let input = "3 + 2 * 2 - 1";
+
+    let expected_result = Expr::Op(
+        Box::new(Expr::Op(
+            Box::new(Expr::Num(3)),
+            BinOp::Add,
+            Box::new(Expr::Op(
+                Box::new(Expr::Num(2)),
+                BinOp::Mult,
+                Box::new(Expr::Num(2)),
+            )),
+        )),
+        BinOp::Sub,
+        Box::new(Expr::Num(1)),
+    );
+
+    match parser.parse(input.into_input()) {
+        Ok(PSuccess { val, rest: _ }) => assert_eq!(val, expected_result),
         Err(_) => assert!(false),
     }
 }

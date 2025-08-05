@@ -29,6 +29,7 @@ macro_rules! choice {
     ($p:expr, $q:expr $(,)?) => {
         $crate::parser::or::por($p, $q)
     };
+
     ($p:expr, $( $rest:expr ),* $(,)?) => {
         $crate::parser::or::por($p, $crate::choice!($($rest),*))
     };
@@ -100,6 +101,14 @@ macro_rules! choice {
 /// ```
 #[macro_export]
 macro_rules! select {
+    { $first:tt } => { $crate::wrap!($first) };
+
+    {
+        $first:tt => $into:expr $(,)?
+    } => {
+        $crate::parser::bind::pbind($crate::wrap!($first), |_| $into)
+    };
+
     {
         $first:tt => $into:expr,
         $second:tt => $into2:expr $(,)?
@@ -118,7 +127,7 @@ macro_rules! select {
             $crate::parser::bind::pbind($crate::wrap!($first), |_| $into),
             $crate::select!($( $rest_p => $rest_into ),*)
         )
-    }
+    };
 }
 
 /// Macro for ergonomic parsing in sequence.
@@ -214,4 +223,110 @@ macro_rules! wrap {
     ($ch:tt) => {
         $crate::parser::just($ch)
     };
+}
+
+/// For ergonomic use of foldl for parsing with precedence.
+///
+/// The lower the block the lower the precedence, start with the basecase
+/// in the below example is would be a number, then successive blocks are
+/// at one lower precedence level. Wrap the level in `{..}`.
+///
+/// ```rust
+/// use cypress::prelude::*;
+///
+/// #[derive(Clone, PartialEq, Debug)]
+/// enum BinOp {
+///     Add,
+///     Sub,
+///     Mult,
+///     Div,
+/// };
+///
+/// #[derive(Clone, PartialEq, Debug)]
+/// enum Expr {
+///     Num(i32),
+///     Op(Box<Expr>, BinOp, Box<Expr>),
+/// };
+///
+/// let base = pnum()
+///        .many1()
+///        .map(|xs| Expr::Num(String::from_utf8(xs).unwrap().parse::<i32>().unwrap()))
+///        .padded_by(pws());
+///
+/// // build precedence scale
+/// let parser = precedence! {
+///     // highest precedence
+///     base,
+///     {
+///         choice!(
+///             just('*').into_(BinOp::Mult),
+///             just('/').into_(BinOp::Div),
+///         )
+///         =>
+///         |a, (bop, b)| Expr::Op(Box::new(a), bop, Box::new(b))
+///     },
+///     // lowest precedence
+///     {
+///         choice!(
+///             just('+').into_(BinOp::Add),
+///             just('-').into_(BinOp::Sub),
+///         )
+///         =>
+///         |a, (bop, b)| Expr::Op(Box::new(a), bop, Box::new(b))
+///     },
+/// };
+///
+/// let input = "3 + 2 * 2 - 1";
+///
+/// // should bind `2` and `2` together with `*`
+/// let expected_result = Expr::Op(
+///     Box::new(Expr::Op(
+///         Box::new(Expr::Num(3)),
+///         BinOp::Add,
+///         Box::new(Expr::Op(
+///             Box::new(Expr::Num(2)),
+///             BinOp::Mult,
+///             Box::new(Expr::Num(2)),
+///         )),
+///     )),
+///     BinOp::Sub,
+///     Box::new(Expr::Num(1)),
+/// );
+/// match parser.parse(input.into_input()) {
+///     Ok(PSuccess { val, rest: _ }) => assert_eq!(val, expected_result),
+///     Err(_) => assert!(false),
+/// }
+/// ```
+#[macro_export]
+macro_rules! precedence {
+    // Entry: base plus at least one (ops, into)
+    (
+        $base:expr,
+        $( { $ops:expr => $into:expr } ),+ $(,)?
+    ) => {{
+        $crate::precedence!(@fold $base, $( ($ops => $into) ),+)
+    }};
+
+    // Single level: just apply once
+    (@fold $parser:expr, ( $ops:expr => $into:expr )) => {{
+        $crate::parser::fold_left::pfoldl(
+            $parser.clone(),
+            $crate::parser::many::pmany(
+                $crate::parser::seq::pseq($ops, $parser.clone())
+            ),
+            $into
+        )
+    }};
+
+    // Recursive: apply first and then the rest
+    (@fold $parser:expr, ( $ops:expr => $into:expr ), $( ($rest_ops:expr => $rest_into:expr) ),+ ) => {{
+        let next = $crate::parser::fold_left::pfoldl(
+            $parser.clone(),
+            $crate::parser::many::pmany(
+                $crate::parser::seq::pseq($ops, $parser.clone())
+            ),
+            $into
+        );
+        $crate::precedence!(@fold next, $( ($rest_ops => $rest_into) ),+)
+    }};
 }

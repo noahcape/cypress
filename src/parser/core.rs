@@ -1,5 +1,6 @@
 use crate::{
     error::{Error, ErrorDisplay},
+    parser::{ignore_then::pignore_then, then_ignore::pthen_ignore},
     prelude::{
         debug, pand, pbetween, pbind, pdelim, pdelim1, pfoldl, pinto, pmany, pmany1, pnot, por,
         ppadded, pseq, puntil_end,
@@ -191,5 +192,23 @@ pub trait Parser<'a, K: PartialEq + Clone + 'a, O: Clone + 'a>:
         F: Fn(O, O2) -> O + Clone + 'a,
     {
         pfoldl(self, tail, f)
+    }
+
+    /// Parsers two parsers in sequence ignores the result of the first and returns the result of the second
+    fn ignore_then<P2, OO>(self, then: P2) -> impl Parser<'a, K, OO>
+    where
+        OO: Clone + 'a,
+        P2: Parser<'a, K, OO>,
+    {
+        pignore_then(self, then)
+    }
+
+    /// Parsers two parsers in sequence returns the result of the first and ignores the result of the second
+    fn then_ignore<P2, OO>(self, ignore: P2) -> impl Parser<'a, K, O>
+    where
+        OO: Clone + 'a,
+        P2: Parser<'a, K, OO>,
+    {
+        pthen_ignore(self, ignore)
     }
 }

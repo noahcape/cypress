@@ -105,6 +105,7 @@ pub mod error;
 /// essential parser combinators and utilities into scope with a single `use`.
 pub mod prelude {
     pub use super::choice;
+    pub use super::precedence;
     pub use super::select;
     pub use super::sequence;
     pub use super::wrap;
@@ -114,8 +115,9 @@ pub mod prelude {
 
     pub use super::parser::{
         and::pand, any, between::pbetween, bind::pbind, core::*, debug::debug, delim::pdelim,
-        delim1::pdelim1, fold_left::pfoldl, ident::pident, into::pinto, just, many::pmany,
-        many1::pmany1, not::pnot, or::por, padded::ppadded, pinlinews, pletter, pnum, pws,
-        recursive::recursive, sat::psat, seq::pseq, until_end::puntil_end, utils::IntoPInput,
+        delim1::pdelim1, fold_left::pfoldl, ident::pident, ignore_then::pignore_then, into::pinto,
+        just, many::pmany, many1::pmany1, not::pnot, or::por, padded::ppadded, pinlinews, pletter,
+        pnum, pws, recursive::recursive, sat::psat, seq::pseq, then_ignore::pthen_ignore,
+        until_end::puntil_end, utils::IntoPInput,
     };
 }

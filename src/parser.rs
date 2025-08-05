@@ -39,6 +39,12 @@ use sat::*;
 /// Parsing multiple parsers one after the other.
 pub mod seq;
 
+/// Parsing two parsers in sequences ignoring the result of the first
+pub mod ignore_then;
+
+/// Parsing two parsers in sequences ignore the result of the second
+pub mod then_ignore;
+
 /// Folding the result of parser into a single value
 pub mod fold_left;
 
