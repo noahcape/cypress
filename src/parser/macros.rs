@@ -312,7 +312,9 @@ macro_rules! precedence {
         $crate::parser::fold_left::pfoldl(
             $parser.clone(),
             $crate::parser::many::pmany(
-                $crate::parser::seq::pseq($ops, $parser.clone())
+                $crate::parser::seq::pseq($ops, $parser.clone()),
+                0,
+                usize::MAX
             ),
             $into
         )
@@ -323,7 +325,9 @@ macro_rules! precedence {
         let next = $crate::parser::fold_left::pfoldl(
             $parser.clone(),
             $crate::parser::many::pmany(
-                $crate::parser::seq::pseq($ops, $parser.clone())
+                $crate::parser::seq::pseq($ops, $parser.clone()),
+                0,
+                usize::MAX
             ),
             $into
         );

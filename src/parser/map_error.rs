@@ -14,11 +14,18 @@ use crate::{
 ///
 /// let input = "1 + 2 + a + 3";
 ///
-/// let parser = pnum().delimited_by(just('+').padded_by(pws())).until_end().map_error(|Error { kind, span, state }| Error { kind: vec![ErrorKind::Custom("Custom error")], span, state });
+/// let parser = pnum()
+///     .delimited_by(just('+').padded_by(pws()))
+///     .until_end()
+///     .map_error(|Error { kind, span, state }| Error {
+///         kind: vec![ErrorKind::Custom("Custom error".to_string())],
+///         span,
+///         state,
+///     });
 ///
 /// match parser.parse(input.into_input()) {
 ///     Err(Error { kind, span, state }) => {
-///         assert_eq!(*kind.first().unwrap(), ErrorKind::Custom("Custom error"))
+///         assert_eq!(*kind.first().unwrap(), ErrorKind::Custom("Custom error".to_string()))
 ///     },
 ///     Ok(_) => assert!(false)
 /// };

@@ -68,7 +68,7 @@
 //! Add this to your `Cargo.toml`:
 //!
 //! ```toml,ignore
-//! cypress = "0.2.1"
+//! cypress = "0.3.0"
 //! ```
 //!
 //! Then import the prelude:
@@ -117,9 +117,9 @@ pub mod prelude {
 
     pub use super::parser::{
         and::pand, any, between::pbetween, bind::pbind, core::*, debug::debug, delim::pdelim,
-        delim1::pdelim1, fold_left::pfoldl, ident::pident, ignore_then::pignore_then, into::pinto,
-        just, many::pmany, many1::pmany1, map_error::pmap_error, map_with_span::pmap_with_span,
-        not::pnot, or::por, padded::ppadded, pinlinews, pletter, pnum, pws, recursive::recursive,
-        sat::psat, seq::pseq, then_ignore::pthen_ignore, until_end::puntil_end, utils::IntoPInput,
+        fold_left::pfoldl, ident::pident, ignore_then::pignore_then, into::pinto, just,
+        many::pmany, map_error::pmap_error, map_with_span::pmap_with_span, not::pnot, or::por,
+        padded::ppadded, pinlinews, pletter, pnum, pws, recursive::recursive, sat::psat, seq::pseq,
+        then_ignore::pthen_ignore, until_end::puntil_end, utils::IntoPInput,
     };
 }

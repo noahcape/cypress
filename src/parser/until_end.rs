@@ -16,36 +16,37 @@ use crate::{
 /// ```rust
 /// use cypress::prelude::*;
 ///
+/// let input = "hello".into_input();
+/// let bad_input = "hello world".into_input();
+///
 /// // A parser that accepts only the identifier "hello"
 /// let parser = pident("hello").until_end();
 ///
 /// // Successful parse when input exactly matches
-/// let input = "hello".into_input();
 /// let result = parser.parse(input);
 /// assert!(result.is_ok());
 ///
 /// // Failure when extra input follows
-/// let bad_input = "hello world".into_input();
 /// let bad_result = parser.parse(bad_input);
 /// assert!(bad_result.is_err());
 /// ```
 #[derive(Clone)]
-pub struct PUntilEnd<P, O> {
+pub struct PUntilEnd<P, K> {
     inner: P,
-    _marker: PhantomData<O>,
+    _marker: PhantomData<K>,
 }
 
 /// Constructs a [`PUntilEnd`] parser that requires its inner parser to consume all input.
 ///
 /// See [`PUntilEnd`] for more details.
-pub fn puntil_end<P, O>(inner: P) -> PUntilEnd<P, O> {
+pub fn puntil_end<P, K>(inner: P) -> PUntilEnd<P, K> {
     PUntilEnd {
         inner,
         _marker: PhantomData,
     }
 }
 
-impl<'a, P, K, O> ParserCore<'a, K, O> for PUntilEnd<P, O>
+impl<'a, P, K, O> ParserCore<'a, K, O> for PUntilEnd<P, K>
 where
     K: PartialEq + Clone + 'a,
     O: Clone + 'a,
@@ -81,7 +82,7 @@ where
     }
 }
 
-impl<'a, P, K, O> Parser<'a, K, O> for PUntilEnd<P, O>
+impl<'a, P, K, O> Parser<'a, K, O> for PUntilEnd<P, K>
 where
     K: PartialEq + Clone + 'a,
     O: Clone + 'a,

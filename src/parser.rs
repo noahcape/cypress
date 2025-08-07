@@ -16,17 +16,11 @@ pub mod padded;
 /// succeed if the inner parser fails at current input.
 pub mod not;
 
-/// Parsers handling delimiters, useful for parsing zero or more separated lists or tokens.
+/// Parsers handling delimiters, useful for parsing delimited lists or tokens.
 pub mod delim;
 
-/// Parsers handling delimiters, useful for parsing one or more separated lists or tokens.
-pub mod delim1;
-
-/// Parsers for matching zero or more repetitions of a pattern.
+/// Parsers for matching between `at_least` and `at_most` repetitions of a pattern.
 pub mod many;
-
-/// Parsers for matching one or more repetitions of a pattern.
-pub mod many1;
 
 /// Parsers allowing binding transformations of output.
 pub mod bind;

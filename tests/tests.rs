@@ -101,7 +101,7 @@ fn t_padded() {
 
 #[test]
 fn t_ident() {
-    let input = b"Noah Cape".into_input();
+    let input = "Noah Cape".into_input();
 
     let parser = pident("Noah")
         .padded_by(pws())
@@ -219,6 +219,7 @@ fn t_foldl() {
     let input = "1 - 2 - 3 - 4";
 
     let pdigit = pnum().map(|n: u8| (n - b'0') as i32).padded_by(pws());
+
     let parser = pdigit
         .clone()
         .foldl(just('-').ignore_then(pdigit).many(), |a, b| a - b);

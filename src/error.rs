@@ -68,7 +68,7 @@ where
     K: Clone,
 {
     /// A custom string-based error.
-    Custom(&'a str),
+    Custom(String),
 
     /// Indicates that the input has been exhausted.
     EOF,

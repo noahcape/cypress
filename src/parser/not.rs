@@ -63,7 +63,7 @@ where
         match self.p.parse(i) {
             Ok(PSuccess { val: _, rest }) => Err(Error {
                 kind: vec![ErrorKind::Custom(
-                    "Expected a negation of the previous parser.",
+                    "Expected a negation of the previous parser.".to_string(),
                 )],
                 span: (start, rest.loc),
                 state: rest,

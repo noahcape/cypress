@@ -45,9 +45,9 @@ fn bf_parser<'a>() -> impl Parser<'a, u8, Vec<Instruction>> {
                 ',' => Instruction::Read
                 '.' => Instruction::Write
             }
-        expr.many()
-            .between(just('['), just(']'))
-            .map(Instruction::Loop)
+            expr.many()
+                .between(just('['), just(']'))
+                .map(Instruction::Loop)
         );
 
         Box::new(instr)

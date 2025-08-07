@@ -1,8 +1,14 @@
 use crate::{
     error::{Error, ErrorDisplay},
+    parser::{
+        and::PAnd, between::PBetween, bind::PBind, debug::PDebug, delim::PDelim,
+        fold_left::PFoldLeft, ignore_then::PIgnoreThen, into::PInto, many::PMany,
+        map_error::PMapError, map_with_span::PMapWithSpan, not::PNot, or::POr, padded::PPaddedBy,
+        seq::PSeq, then_ignore::PThenIgnore, until_end::PUntilEnd,
+    },
     prelude::{
-        debug, pand, pbetween, pbind, pdelim, pdelim1, pfoldl, pignore_then, pinto, pmany, pmany1,
-        pmap_error, pmap_with_span, pnot, por, ppadded, pseq, pthen_ignore, puntil_end,
+        debug, pand, pbetween, pbind, pdelim, pfoldl, pignore_then, pinto, pmany, pmap_error,
+        pmap_with_span, pnot, por, ppadded, pseq, pthen_ignore, puntil_end,
     },
 };
 
@@ -75,24 +81,24 @@ pub trait Parser<'a, K: PartialEq + Clone + 'a, O: Clone + 'a>:
     ParserCore<'a, K, O> + Sized + Clone
 {
     /// Sequence two parsers and return a tuple of their results.
-    fn then<O2, T>(self, p2: T) -> impl Parser<'a, K, (O, O2)>
+    fn then<P2, O2>(self, p2: P2) -> PSeq<Self, P2>
     where
-        T: Parser<'a, K, O2>,
         O2: Clone + 'a,
+        P2: Parser<'a, K, O2>,
     {
         pseq(self, p2)
     }
 
     /// Try this parser or an alternative parser if this one fails.
-    fn or<T>(self, p2: T) -> impl Parser<'a, K, O>
+    fn or<P2>(self, p2: P2) -> POr<Self, P2>
     where
-        T: Parser<'a, K, O>,
+        P2: Parser<'a, K, O>,
     {
         por(self, p2)
     }
 
     /// Apply a function to transform the output of the parser.
-    fn map<O2, F>(self, f: F) -> impl Parser<'a, K, O2>
+    fn map<O2, F>(self, f: F) -> PBind<Self, O, O2>
     where
         F: Fn(O) -> O2 + 'static,
         O2: Clone + 'a,
@@ -101,7 +107,7 @@ pub trait Parser<'a, K: PartialEq + Clone + 'a, O: Clone + 'a>:
     }
 
     /// Apply this parser between two delimiters, discarding the delimiters' results.
-    fn between<A, P1, P2>(self, l: P1, r: P2) -> impl Parser<'a, K, O>
+    fn between<A, P1, P2>(self, l: P1, r: P2) -> PBetween<P1, Self, P2, A>
     where
         A: Clone + 'a,
         P1: Parser<'a, K, A>,
@@ -110,50 +116,54 @@ pub trait Parser<'a, K: PartialEq + Clone + 'a, O: Clone + 'a>:
         pbetween(l, self, r)
     }
 
-    /// Match this parser zero or more times and collect the results.
-    fn many(self) -> impl Parser<'a, K, Vec<O>> {
-        pmany(self)
+    /// Match this parser zero or more times and collect the results. This is the by
+    /// default behavior of [`crate::parser::many::PMany`] yet one can specialize behavior
+    /// with [`crate::parser::many::PMany::at_least`] and [`crate::parser::many::PMany::at_most`]
+    fn many(self) -> PMany<Self> {
+        pmany(self, 0, usize::MAX)
     }
 
     /// Match this parser one or more times and collect the results.
-    fn many1(self) -> impl Parser<'a, K, Vec<O>> {
-        pmany1(self)
+    fn many1(self) -> PMany<Self> {
+        pmany(self, 1, usize::MAX)
     }
 
     /// Parse this parser zero or more times separated by a delimiter (but keep only the content values).
-    fn delimited_by<PD, A>(self, delim: PD) -> impl Parser<'a, K, Vec<O>>
+    /// By defualt allow trailing delimiters use [`crate::parser::delim::PDelim::no_trailing`],
+    /// [`crate::parser::delim::PDelim::at_least`] and [`crate::parser::delim::PDelim::at_most`] to specialize this parser.
+    fn delimited_by<PD, A>(self, delim: PD) -> PDelim<Self, PD, A>
     where
         A: Clone + 'a,
         PD: Parser<'a, K, A>,
     {
-        pdelim(self, delim)
+        pdelim(self, delim, 0, usize::MAX, true)
     }
 
     /// Parse this parser one or more times separated by a delimiter (but keep only the content values).
-    fn delimited_by1<PD, A>(self, delim: PD) -> impl Parser<'a, K, Vec<O>>
+    fn delimited_by1<PD, A>(self, delim: PD) -> PDelim<Self, PD, A>
     where
         A: Clone + 'a,
         PD: Parser<'a, K, A>,
     {
-        pdelim1(self, delim)
+        pdelim(self, delim, 1, usize::MAX, true)
     }
 
     /// Succeeds only if this parser fails, and vice versa. Produces no value.
-    fn not(self) -> impl Parser<'a, K, ()> {
+    fn not(self) -> PNot<Self, O> {
         pnot(self)
     }
 
     /// Surround this parser with padding (like whitespace) and return the result.
-    fn padded_by<P, A>(self, pad: P) -> impl Parser<'a, K, O>
+    fn padded_by<PD, A>(self, pad: PD) -> PPaddedBy<Self, PD, A>
     where
         A: Clone + 'a,
-        P: Parser<'a, K, A> + Clone,
+        PD: Parser<'a, K, A> + Clone,
     {
         ppadded(self, pad)
     }
 
     /// Ignores the actual parsed value and replaces it with a given one.
-    fn into_<Out>(self, out: Out) -> impl Parser<'a, K, Out>
+    fn into_<Out>(self, out: Out) -> PInto<Self, O, Out, K>
     where
         Out: PartialEq + Clone + 'a,
     {
@@ -161,7 +171,7 @@ pub trait Parser<'a, K: PartialEq + Clone + 'a, O: Clone + 'a>:
     }
 
     /// Debug tracing combinator to help inspect parsing behavior.
-    fn debug(self, label: &'static str) -> impl Parser<'a, K, O>
+    fn debug(self, label: &'static str) -> PDebug<Self>
     where
         K: ErrorDisplay,
     {
@@ -169,7 +179,7 @@ pub trait Parser<'a, K: PartialEq + Clone + 'a, O: Clone + 'a>:
     }
 
     /// Apply another parser after this one, but return only the result of the first as well as the location after parsing.
-    fn and<P2, A>(self, second: P2) -> impl Parser<'a, K, O>
+    fn and<P2, A>(self, second: P2) -> PAnd<Self, P2, A>
     where
         A: Clone + 'a,
         P2: Parser<'a, K, A>,
@@ -178,12 +188,12 @@ pub trait Parser<'a, K: PartialEq + Clone + 'a, O: Clone + 'a>:
     }
 
     /// Succeeds if and only if the inner parser succeeds and consumes all input
-    fn until_end(self) -> impl Parser<'a, K, O> {
+    fn until_end(self) -> PUntilEnd<Self, K> {
         puntil_end(self)
     }
 
     /// Use `self` as `init` while folding left on `tail` using `f`
-    fn foldl<TP, F, I, O2>(self, tail: TP, f: F) -> impl Parser<'a, K, O>
+    fn foldl<TP, F, I, O2>(self, tail: TP, f: F) -> PFoldLeft<Self, TP, F, I, O2>
     where
         O2: Clone + 'a,
         I: IntoIterator<Item = O2> + Clone + 'a,
@@ -194,7 +204,7 @@ pub trait Parser<'a, K: PartialEq + Clone + 'a, O: Clone + 'a>:
     }
 
     /// Parsers two parsers in sequence ignores the result of the first and returns the result of the second
-    fn ignore_then<P2, OO>(self, then: P2) -> impl Parser<'a, K, OO>
+    fn ignore_then<P2, OO>(self, then: P2) -> PIgnoreThen<Self, P2, O>
     where
         OO: Clone + 'a,
         P2: Parser<'a, K, OO>,
@@ -203,25 +213,25 @@ pub trait Parser<'a, K: PartialEq + Clone + 'a, O: Clone + 'a>:
     }
 
     /// Parsers two parsers in sequence returns the result of the first and ignores the result of the second
-    fn then_ignore<P2, OO>(self, ignore: P2) -> impl Parser<'a, K, O>
+    fn then_ignore<P2, OI>(self, ignore: P2) -> PThenIgnore<Self, P2, OI>
     where
-        OO: Clone + 'a,
-        P2: Parser<'a, K, OO>,
+        OI: Clone + 'a,
+        P2: Parser<'a, K, OI>,
     {
         pthen_ignore(self, ignore)
     }
 
     /// Map the result of the parser through a function with the span which the parser was successful parsing
-    fn map_with_span<F, O1>(self, f: F) -> impl Parser<'a, K, O1>
+    fn map_with_span<F, O2>(self, f: F) -> PMapWithSpan<Self, O, O2>
     where
-        F: Fn(O, Span) -> O1 + 'static,
-        O1: Clone + 'a,
+        F: Fn(O, Span) -> O2 + 'static,
+        O2: Clone + 'a,
     {
         pmap_with_span(self, f)
     }
 
     /// Map an error of `self` with `f` if it fails else result the result of `self`
-    fn map_error<F>(self, f: F) -> impl Parser<'a, K, O>
+    fn map_error<F>(self, f: F) -> PMapError<'a, K, Self>
     where
         F: Fn(Error<'a, K>) -> Error<'a, K> + 'static,
     {

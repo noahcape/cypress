@@ -28,8 +28,7 @@ pub struct PFoldLeft<P, TP, F, I, O2> {
     head: P,
     tail: TP,
     f: F,
-    _marker: PhantomData<I>,
-    _marker2: PhantomData<O2>,
+    _marker: PhantomData<(I, O2)>,
 }
 
 /// Constructs a `PFoldLeft` parser.
@@ -60,7 +59,6 @@ pub fn pfoldl<P, TP, F, I, O2>(head: P, tail: TP, f: F) -> PFoldLeft<P, TP, F, I
         tail,
         f,
         _marker: PhantomData,
-        _marker2: PhantomData,
     }
 }
 

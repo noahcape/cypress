@@ -96,7 +96,9 @@ where
                 span,
                 state,
             }) => {
-                kind.push(ErrorKind::Custom("Failed parsing inside between parser."));
+                kind.push(ErrorKind::Custom(
+                    "Failed parsing inside between parser.".to_string(),
+                ));
                 return Err(Error { kind, span, state });
             }
         };
@@ -112,7 +114,9 @@ where
                 span: _,
                 state,
             }) => {
-                kind.push(ErrorKind::Custom("Missing end parsing between."));
+                kind.push(ErrorKind::Custom(
+                    "Missing end parsing between.".to_string(),
+                ));
                 Err(Error {
                     kind,
                     span: (start, state.loc),

@@ -18,7 +18,12 @@ use crate::prelude::{Error, PInput, PSuccess, Parser, ParserCore, Span};
 ///
 /// let input = "\"this is a string\"";
 ///
-/// let parser = just('\"').ignore_then(pletter().or(pws()).many().map(|cs| String::from_utf8(cs).unwrap()).map_with_span(|str_, span| SpannedToken(str_, span))).then_ignore(just('\"'));
+/// let parser = just('\"')
+///     .ignore_then(pletter().or(pws())
+///     .many()
+///     .map(|cs| String::from_utf8(cs).unwrap())
+///     .map_with_span(|str_, span| SpannedToken(str_, span)))
+///     .then_ignore(just('\"'));
 ///
 /// match parser.parse(input.into_input()) {
 ///     Ok(PSuccess { val, rest: _ }) => assert_eq!(val, SpannedToken("this is a string".to_string(), (1, 17))),

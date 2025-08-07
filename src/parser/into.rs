@@ -19,13 +19,13 @@ use std::marker::PhantomData;
 /// * `out` - The value to output regardless of the inner parser's result.
 /// * `_marker` - PhantomData to hold the `In` type.
 #[derive(Clone)]
-pub struct PInto<P, In, Out> {
+pub struct PInto<P, In, Out, K> {
     /// Inner parser whose output is ignored.
     p: P,
     /// The output value to return instead of the inner parser's output.
     out: Out,
     /// Phantom type marker for the inner parser's output type.
-    _marker: PhantomData<In>,
+    _marker: PhantomData<(K, In)>,
 }
 
 /// Creates a new `PInto` parser combinator that runs the parser `p`
@@ -40,7 +40,7 @@ pub struct PInto<P, In, Out> {
 ///
 /// A `PInto` instance that implements `ParserCore`, returning `out`
 /// whenever `p` successfully parses input.
-pub fn pinto<P, In, Out>(p: P, out: Out) -> PInto<P, In, Out> {
+pub fn pinto<P, In, Out, K>(p: P, out: Out) -> PInto<P, In, Out, K> {
     PInto {
         p,
         out,
@@ -48,7 +48,7 @@ pub fn pinto<P, In, Out>(p: P, out: Out) -> PInto<P, In, Out> {
     }
 }
 
-impl<'a, K, P, In, Out> ParserCore<'a, K, Out> for PInto<P, In, Out>
+impl<'a, K, P, In, Out> ParserCore<'a, K, Out> for PInto<P, In, Out, K>
 where
     K: PartialEq + Clone + 'a,
     In: Clone + 'a,
@@ -75,7 +75,7 @@ where
     }
 }
 
-impl<'a, K, P, In, Out> Parser<'a, K, Out> for PInto<P, In, Out>
+impl<'a, K, P, In, Out> Parser<'a, K, Out> for PInto<P, In, Out, K>
 where
     K: PartialEq + Clone + 'a,
     Out: PartialEq + Clone + 'a,

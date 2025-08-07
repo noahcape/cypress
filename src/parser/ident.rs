@@ -18,6 +18,8 @@ pub struct PIdent<'a> {
 }
 
 /// Creates a new `PIdent` parser that matches the exact string `ident`.
+/// Note that this is only implemented for input types [char] or [u8] since
+/// these are the logical types to compare against a [str].
 ///
 /// # Arguments
 ///
@@ -31,15 +33,11 @@ pub fn pident<'a>(ident: &'a str) -> PIdent<'a> {
     PIdent { ident }
 }
 
-impl<'a, K> ParserCore<'a, K, &'a str> for PIdent<'a>
-where
-    K: PartialEq + Clone + PartialEq<u8> + Char + 'a,
-{
-    /// Attempts to parse the identifier string from the input.
+impl<'a> ParserCore<'a, u8, &'a str> for PIdent<'a> {
+    /// Attempts to parse the identifier string from the input of u8.
     ///
-    /// This method extracts a slice from the input tokens of length equal to the
-    /// identifier's length, converts each token into a `char`, and collects them
-    /// into a `String`. It then compares this string with the expected identifier.
+    /// This method extracts a [u8] from the input tokens of length equal to the
+    /// identifier's length, and directly compares to the ident `.as_bytes()`
     ///
     /// # Arguments
     ///
@@ -51,7 +49,7 @@ where
     ///   if the input matches the identifier exactly.
     /// * `Err(Error)` containing an error message, the span of the failed match,
     ///   and the input position after the attempted parse if the match fails.
-    fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, &'a str>, Error<'a, K>> {
+    fn parse(&self, i: PInput<'a, u8>) -> Result<PSuccess<'a, u8, &'a str>, Error<'a, u8>> {
         let ident_len = self.ident.len();
 
         if i.tokens.len() < i.loc + ident_len {
@@ -69,11 +67,16 @@ where
         }
 
         // Compare input tokens to identified
-        if i.tokens[i.loc..i.loc + ident_len]
-            .iter()
-            .zip(self.ident.as_bytes())
-            .any(|(a, b)| !(a.eq(b)))
-        {
+        if &i.tokens[i.loc..i.loc + ident_len] == self.ident.as_bytes() {
+            // Successful parse: return matched string and updated location
+            Ok(PSuccess {
+                val: self.ident,
+                rest: PInput {
+                    tokens: i.tokens,
+                    loc: i.loc + ident_len,
+                },
+            })
+        } else {
             // Failed parse: return error message, span, and updated input location
             Err(Error {
                 kind: vec![ErrorKind::Unexpected {
@@ -88,7 +91,51 @@ where
                     loc: i.loc,
                 },
             })
-        } else {
+        }
+    }
+}
+
+impl<'a> ParserCore<'a, char, &'a str> for PIdent<'a> {
+    /// Attempts to parse the identifier string from the input of char.
+    ///
+    /// This method extracts a slice from the input [char]s of length equal to the
+    /// identifier's length, then converts the ident into chars and compares each
+    /// element.
+    ///
+    /// # Arguments
+    ///
+    /// * `i` - The parser input containing tokens and current location.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(PSuccess)` with the matched identifier string and updated input location
+    ///   if the input matches the identifier exactly.
+    /// * `Err(Error)` containing an error message, the span of the failed match,
+    ///   and the input position after the attempted parse if the match fails.
+    fn parse(&self, i: PInput<'a, char>) -> Result<PSuccess<'a, char, &'a str>, Error<'a, char>> {
+        let ident_len = self.ident.len();
+
+        if i.tokens.len() < i.loc + ident_len {
+            return Err(Error {
+                kind: vec![ErrorKind::Unexpected {
+                    expected: vec![TokenPattern::String(std::borrow::Cow::Borrowed(self.ident))],
+                    found: TokenPattern::String(std::borrow::Cow::Borrowed("Not enough tokens")),
+                }],
+                span: (i.loc, i.tokens.len()),
+                state: PInput {
+                    tokens: i.tokens,
+                    loc: i.loc,
+                },
+            });
+        }
+
+        // Compare input tokens to identified
+        if self
+            .ident
+            .chars()
+            .zip(i.tokens[i.loc..i.loc + ident_len].iter())
+            .all(|(a, b)| a == *b)
+        {
             // Successful parse: return matched string and updated location
             Ok(PSuccess {
                 val: self.ident,
@@ -97,11 +144,25 @@ where
                     loc: i.loc + ident_len,
                 },
             })
+        } else {
+            // Failed parse: return error message, span, and updated input location
+            Err(Error {
+                kind: vec![ErrorKind::Unexpected {
+                    expected: vec![TokenPattern::String(std::borrow::Cow::Borrowed(self.ident))],
+                    found: TokenPattern::Tokens(std::borrow::Cow::Borrowed(
+                        &i.tokens[i.loc..i.loc + ident_len],
+                    )),
+                }],
+                span: (i.loc, i.loc + ident_len),
+                state: PInput {
+                    tokens: i.tokens,
+                    loc: i.loc,
+                },
+            })
         }
     }
 }
 
-impl<'a, K> Parser<'a, K, &'a str> for PIdent<'a> where
-    K: PartialEq + Clone + PartialEq<u8> + Char + 'a
-{
-}
+impl<'a> Parser<'a, u8, &'a str> for PIdent<'a> {}
+
+impl<'a> Parser<'a, char, &'a str> for PIdent<'a> {}
