@@ -71,10 +71,8 @@ fn ident<'a>() -> impl Parser<'a, u8, String> {
 /// below for an example of doing a similar parse without this macro.
 fn var_assignment<'a>(expr: impl Parser<'a, u8, Expr>) -> impl Parser<'a, u8, Expr> {
     sequence!(
-        (ident())                       >
-        (just('=').padded_by(pws()))    >
-        expr                            =>
-        |(name, (_, val))| Expr::Assignment(name, Box::new(val))
+        (ident()) > (just('=').padded_by(pws())) > expr
+            => |(name, (_, val))| Expr::Assignment(name, Box::new(val))
     )
 }
 

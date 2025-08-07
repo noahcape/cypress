@@ -1,9 +1,8 @@
 use crate::{
     error::{Error, ErrorDisplay},
-    parser::{ignore_then::pignore_then, then_ignore::pthen_ignore},
     prelude::{
-        debug, pand, pbetween, pbind, pdelim, pdelim1, pfoldl, pinto, pmany, pmany1, pnot, por,
-        ppadded, pseq, puntil_end,
+        debug, pand, pbetween, pbind, pdelim, pdelim1, pfoldl, pignore_then, pinto, pmany, pmany1,
+        pmap_error, pmap_with_span, pnot, por, ppadded, pseq, pthen_ignore, puntil_end,
     },
 };
 
@@ -210,5 +209,22 @@ pub trait Parser<'a, K: PartialEq + Clone + 'a, O: Clone + 'a>:
         P2: Parser<'a, K, OO>,
     {
         pthen_ignore(self, ignore)
+    }
+
+    /// Map the result of the parser through a function with the span which the parser was successful parsing
+    fn map_with_span<F, O1>(self, f: F) -> impl Parser<'a, K, O1>
+    where
+        F: Fn(O, Span) -> O1 + 'static,
+        O1: Clone + 'a,
+    {
+        pmap_with_span(self, f)
+    }
+
+    /// Map an error of `self` with `f` if it fails else result the result of `self`
+    fn map_error<F>(self, f: F) -> impl Parser<'a, K, O>
+    where
+        F: Fn(Error<'a, K>) -> Error<'a, K> + 'static,
+    {
+        pmap_error(self, f)
     }
 }

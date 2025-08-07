@@ -14,7 +14,7 @@ The goal of this project was to develop a simple parser combinator library with 
 - Expressive combinators
 - Labelling parser for easier debugging
 - Generic over input and output
-- Ergonomic macros for common parsing tasks
+- Macros for ergonomic parsing for common tasks
 
 ## Example
 
@@ -36,23 +36,24 @@ enum Instruction {
 
 fn bf_parser<'a>() -> impl Parser<'a, u8, Vec<Instruction>> {
     recursive(|expr| {
-        Box::new(
-            choice!(
-                select! {
-                    '<' => Instruction::Left,
-                    '>' => Instruction::Right,
-                    '+' => Instruction::Increment,
-                    '-' => Instruction::Decrement,
-                    ',' => Instruction::Read,
-                    '.' => Instruction::Write,
-                },
-                expr.between(just('['), just(']'))
-                    .map(|expr| Instruction::Loop(expr))
-            )
-            .many(),
-        )
+        let instr = choice!(
+            select! {
+                '<' => Instruction::Left
+                '>' => Instruction::Right
+                '+' => Instruction::Increment
+                '-' => Instruction::Decrement
+                ',' => Instruction::Read
+                '.' => Instruction::Write
+            }
+        expr.many()
+            .between(just('['), just(']'))
+            .map(Instruction::Loop)
+        );
+
+        Box::new(instr)
     })
-    .until_end();
+    .many()
+    .until_end()
 }
 
 let input = b"+++++[>>+<<-]".into_input();

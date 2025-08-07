@@ -31,6 +31,12 @@ pub mod many1;
 /// Parsers allowing binding transformations of output.
 pub mod bind;
 
+/// Map result of parser with the input span it parsed
+pub mod map_with_span;
+
+/// Map result of parser if it is an error
+pub mod map_error;
+
 /// Parsers that match tokens satisfying predicates.
 /// Useful for matching specific token classes.
 pub mod sat;

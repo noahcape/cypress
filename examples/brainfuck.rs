@@ -23,23 +23,26 @@ enum Instruction {
 
 fn main() {
     let parser = recursive(|expr| {
-        Box::new(
-            choice!(
-                select! {
-                    '<' => Instruction::Left,
-                    '>' => Instruction::Right,
-                    '+' => Instruction::Increment,
-                    '-' => Instruction::Decrement,
-                    ',' => Instruction::Read,
-                    '.' => Instruction::Write,
-                },
-                expr.between(just('['), just(']'))
-                    .map(|expr| Instruction::Loop(expr))
-            )
-            .many()
-            .until_end(),
-        )
-    });
+        // Parser for a single instruction (not the whole program)
+        let instr = choice!(
+            select! {
+                '<' => Instruction::Left,
+                '>' => Instruction::Right,
+                '+' => Instruction::Increment,
+                '-' => Instruction::Decrement,
+                ',' => Instruction::Read,
+                '.' => Instruction::Write,
+            },
+            // Now inside Loop, parse *many instructions* again — not the full `expr`
+            expr.many()
+                .between(just('['), just(']'))
+                .map(Instruction::Loop)
+        );
+
+        Box::new(instr)
+    })
+    .many()
+    .until_end();
 
     let input = b"+++++[>>+<<-]".into_input();
 

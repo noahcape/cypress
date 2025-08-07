@@ -15,6 +15,7 @@
 //! - Recursive parsers via `recursive`
 //! - Combinators for sequencing, mapping, branching, etc.
 //! - Simple token-based parsing with custom input types
+//! - Macros for more ergonomic parsing
 //!
 //! ## Example
 //!
@@ -36,22 +37,23 @@
 //!
 //! fn bf_parser<'a>() -> impl Parser<'a, u8, Vec<Instruction>> {
 //!     recursive(|expr| {
-//!         Box::new(
-//!             choice!(
-//!                 select! {
-//!                     '<' => Instruction::Left,
-//!                     '>' => Instruction::Right,
-//!                     '+' => Instruction::Increment,
-//!                     '-' => Instruction::Decrement,
-//!                     ',' => Instruction::Read,
-//!                     '.' => Instruction::Write,
-//!                 },
-//!                 expr.between(just('['), just(']'))
-//!                     .map(|expr| Instruction::Loop(expr))
-//!             )
-//!             .many(),
-//!         )
+//!         let instr = choice!(
+//!             select! {
+//!                 '<' => Instruction::Left,
+//!                 '>' => Instruction::Right,
+//!                 '+' => Instruction::Increment,
+//!                 '-' => Instruction::Decrement,
+//!                 ',' => Instruction::Read,
+//!                 '.' => Instruction::Write,
+//!             },
+//!             expr.many()
+//!                 .between(just('['), just(']'))
+//!                 .map(Instruction::Loop)
+//!         );
+//!
+//!         Box::new(instr)
 //!     })
+//!     .many()
 //!     .until_end()
 //! }
 //!
@@ -66,7 +68,7 @@
 //! Add this to your `Cargo.toml`:
 //!
 //! ```toml,ignore
-//! cypress = "0.1.0"
+//! cypress = "0.2.1"
 //! ```
 //!
 //! Then import the prelude:
@@ -110,14 +112,14 @@ pub mod prelude {
     pub use super::sequence;
     pub use super::wrap;
 
-    pub use super::error;
-    pub use super::text;
+    pub use super::error::*;
+    pub use super::text::*;
 
     pub use super::parser::{
         and::pand, any, between::pbetween, bind::pbind, core::*, debug::debug, delim::pdelim,
         delim1::pdelim1, fold_left::pfoldl, ident::pident, ignore_then::pignore_then, into::pinto,
-        just, many::pmany, many1::pmany1, not::pnot, or::por, padded::ppadded, pinlinews, pletter,
-        pnum, pws, recursive::recursive, sat::psat, seq::pseq, then_ignore::pthen_ignore,
-        until_end::puntil_end, utils::IntoPInput,
+        just, many::pmany, many1::pmany1, map_error::pmap_error, map_with_span::pmap_with_span,
+        not::pnot, or::por, padded::ppadded, pinlinews, pletter, pnum, pws, recursive::recursive,
+        sat::psat, seq::pseq, then_ignore::pthen_ignore, until_end::puntil_end, utils::IntoPInput,
     };
 }

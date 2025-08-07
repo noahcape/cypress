@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::prelude::{PInput, PSuccess, Parser, ParserCore, error::Error};
+use crate::prelude::{Error, PInput, PSuccess, Parser, ParserCore};
 
 /// A combinator that runs two parsers sequentially,
 /// discarding the result of the first (`ignore`) and keeping only the result of the second (`then`).

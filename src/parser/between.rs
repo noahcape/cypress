@@ -77,6 +77,8 @@ where
     ///
     /// Only the result of `p` is returned. If any parser fails, the whole parse fails.
     fn parse(&self, i: PInput<'a, K>) -> Result<PSuccess<'a, K, O>, Error<'a, K>> {
+        let start = i.loc;
+
         // Apply the left parser (discard its result)
         let PSuccess {
             val: _,
@@ -87,7 +89,17 @@ where
         let PSuccess {
             val,
             rest: after_main,
-        } = self.p.parse(after_l)?;
+        } = match self.p.parse(after_l) {
+            Ok(success) => success,
+            Err(Error {
+                mut kind,
+                span,
+                state,
+            }) => {
+                kind.push(ErrorKind::Custom("Failed parsing inside between parser."));
+                return Err(Error { kind, span, state });
+            }
+        };
 
         // Apply the right parser (discard its result)
         match self.r.parse(after_main) {
@@ -97,11 +109,15 @@ where
             }) => Ok(PSuccess { val, rest: after_r }),
             Err(Error {
                 mut kind,
-                span,
+                span: _,
                 state,
             }) => {
                 kind.push(ErrorKind::Custom("Missing end parsing between."));
-                Err(Error { kind, span, state })
+                Err(Error {
+                    kind,
+                    span: (start, state.loc),
+                    state,
+                })
             }
         }
     }

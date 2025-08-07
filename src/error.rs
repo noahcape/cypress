@@ -5,7 +5,7 @@ use crate::parser::core::Span;
 use crate::prelude::PInput;
 
 /// A pattern representing one or more tokens or a string, used for descriptive error messages.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum TokenPattern<'a, K>
 where
     K: Clone,
@@ -81,6 +81,28 @@ where
         /// The actual token that was found.
         found: TokenPattern<'a, K>,
     },
+}
+
+impl<'a, K> PartialEq for ErrorKind<'a, K>
+where
+    K: Clone + PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Custom(l0), Self::Custom(r0)) => l0 == r0,
+            (
+                Self::Unexpected {
+                    expected: l_expected,
+                    found: l_found,
+                },
+                Self::Unexpected {
+                    expected: r_expected,
+                    found: r_found,
+                },
+            ) => l_expected.iter().zip(r_expected).all(|(a, b)| a == b) && l_found == r_found,
+            _ => core::mem::discriminant(self) == core::mem::discriminant(other),
+        }
+    }
 }
 
 impl<'a, K> Display for ErrorKind<'a, K>
